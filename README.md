@@ -1,2 +1,4 @@
-# audiolabapp
-AudioLabApp - laboratorium dźwiękowe
+# AudioLabApp
+Laboratorium dźwiękowe.
+
+
