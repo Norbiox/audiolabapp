@@ -1,0 +1,27 @@
+swagger: "2.0"
+info:
+  description: Lab app API
+  version: "0.1.0"
+  title: Lab app API
+basePath: "/lab"
+
+# Paths supported by the server application
+paths:
+  /:
+    get:
+      operationId: "app.api.lab.index"
+      summary: "Index of application"
+      description: "Index of application"
+      responses:
+        200:
+          description: "Successful read people list operation"
+          schema:
+            type: "array"
+            items:
+              properties:
+                fname:
+                  type: "string"
+                lname:
+                  type: "string"
+                timestamp:
+                  type: "string"
