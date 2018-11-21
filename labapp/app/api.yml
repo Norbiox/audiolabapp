@@ -15,6 +15,8 @@ tags:
   description: Sound recording device
 - name: series
   description: Series of records
+- name: label
+  description: Labels for records
 - name: record
   description: Sound record object
 paths:
@@ -577,6 +579,10 @@ components:
           format: date-time
         label:
           type: string
+          enum:
+            - GOOD
+            - WRONG
+            - UNKNOWN
         filepath:
           type: string
     Error:

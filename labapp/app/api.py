@@ -67,3 +67,7 @@ def upload_record():
 	return []
 
 
+def download_record():
+	return []
+
+
