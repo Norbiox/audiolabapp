@@ -25,7 +25,7 @@ paths:
       tags:
       - recorder
       summary: Return all recorders
-      operationId: app.api.get_recorders
+      operationId: app.labapp_api.get_recorders
       responses:
         200:
           description: successful operation
@@ -43,7 +43,7 @@ paths:
       tags:
         - recorder
       summary: Add a new recorder to laboratory
-      operationId: app.api.new_recorder
+      operationId: app.labapp_api.new_recorder
       requestBody:
         description: Recorder object to add to laboratory
         required: true
@@ -69,7 +69,7 @@ paths:
       tags:
       - recorder
       summary: Find recorder by UID and return
-      operationId: app.api.get_recorder
+      operationId: app.labapp_api.get_recorder
       parameters:
       - name: recorder_uid
         in: path
@@ -94,7 +94,7 @@ paths:
       tags:
         - recorder
       summary: Update recorder
-      operationId: app.api.update_recorder
+      operationId: app.labapp_api.update_recorder
       requestBody:
         description: Recorder object to update
         required: true
@@ -130,7 +130,7 @@ paths:
       tags:
         - recorder
       summary: Deletes a recorder
-      operationId: app.api.delete_recorder
+      operationId: app.labapp_api.delete_recorder
       parameters:
         - name: recorder_uid
           in: path
@@ -154,7 +154,7 @@ paths:
       tags:
         - series
       summary: Return all serieses
-      operationId: app.api.get_serieses
+      operationId: app.labapp_api.get_serieses
       parameters:
         - in: query
           name: recorder_uid
@@ -202,7 +202,7 @@ paths:
       tags:
         - series
       summary: Add a new series
-      operationId: app.api.new_series
+      operationId: app.labapp_api.new_series
       requestBody:
         description: Series object that will be created
         required: true
@@ -230,7 +230,7 @@ paths:
       tags:
         - series
       summary: Find series by UID and return
-      operationId: app.api.get_series
+      operationId: app.labapp_api.get_series
       parameters:
         - name: series_uid
           in: path
@@ -255,7 +255,7 @@ paths:
       tags:
         - series
       summary: Update series
-      operationId: app.api.update_series
+      operationId: app.labapp_api.update_series
       requestBody:
         description: Series object that will be updated
         required: true
@@ -289,7 +289,7 @@ paths:
       tags:
         - series
       summary: Deletes a series
-      operationId: app.api.delete_series
+      operationId: app.labapp_api.delete_series
       parameters:
       - name: series_uid
         in: path
@@ -311,7 +311,7 @@ paths:
       tags:
         - record
       summary: Return all records
-      operationId: app.api.get_records
+      operationId: app.labapp_api.get_records
       responses:
         200:
           description: successful operation
@@ -329,7 +329,7 @@ paths:
       tags:
         - record
       summary: Register a new record
-      operationId: app.api.new_record
+      operationId: app.labapp_api.new_record
       requestBody:
         description: Record object that will be registered
         required: true
@@ -355,7 +355,7 @@ paths:
       tags:
         - record
       summary: Find record by UID and return
-      operationId: app.api.get_record
+      operationId: app.labapp_api.get_record
       parameters:
         - name: record_uid
           in: path
@@ -380,7 +380,7 @@ paths:
       tags:
         - record
       summary: Update record
-      operationId: app.api.update_record
+      operationId: app.labapp_api.update_record
       requestBody:
         description: Record object that will be registered
         required: true
@@ -414,7 +414,7 @@ paths:
       tags:
         - record
       summary: Deletes a record
-      operationId: app.api.delete_record
+      operationId: app.labapp_api.delete_record
       parameters:
         - in: path
           name: record_uid
@@ -438,7 +438,7 @@ paths:
       tags:
         - record
       summary: Download sound record file
-      operationId: app.api.download_record
+      operationId: app.labapp_api.download_record
       parameters:
         - in: path
           name: record_uid
@@ -466,7 +466,7 @@ paths:
       tags:
         - record
       summary: Upload sound record file
-      operationId: app.api.upload_record
+      operationId: app.labapp_api.upload_record
       requestBody:
         content:
           audio/wav:

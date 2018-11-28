@@ -4,70 +4,68 @@ from .models import Recorder
 
 
 def get_recorders():
-	return []
+    return []
 
 
 def new_recorder():
-	return {}
+    return {}
 
 
 def get_recorder():
-	return {}
+    return {}
 
 
 def update_recorder():
-	return {}
+    return {}
 
 
 def delete_recorder():
-	return {}
+    return {}
 
 
 def get_serieses():
-	return []
+    return []
 
 
 def new_series():
-	return {}
+    return {}
 
 
 def get_series():
-	return {}
+    return {}
 
 
 def update_series():
-	return {}
+    return {}
 
 
 def delete_series():
-	return {}
+    return {}
 
 
 def get_records():
-	return []
+    return []
 
 
 def new_record():
-	return {}
+    return {}
 
 
 def get_record():
-	return {}
+    return {}
 
 
 def update_record():
-	return {}
+    return {}
 
 
 def delete_record():
-	return {}
+    return {}
 
 
 def upload_record():
-	return []
+    return []
 
 
 def download_record():
-	return []
-
-
+    return []
