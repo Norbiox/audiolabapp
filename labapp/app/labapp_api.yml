@@ -6,26 +6,312 @@ info:
   contact:
     email: norberto9411@gmail.com
 servers:
-  - url: http://localhost/{version}
+  - url: http://localhost:5000/{version}/lab
     variables:
       version:
         default: '1.0'
 tags:
-- name: recorder
-  description: Sound recording device
-- name: series
-  description: Series of records
-- name: label
-  description: Labels for records
 - name: record
   description: Sound record object
+- name: recorder
+  description: Sound recording device
+- name: recording_parameters
+  description: Sound recording parameters
+- name: series
+  description: Series of records
 paths:
+  /record:    
+    get:
+      tags:
+        - record
+      summary: Return records
+      operationId: app.labapp_api.get_records
+      parameters:
+        - name: series_uid
+          in: query
+          description: Return records from specific series
+          schema:
+            type: array
+            items:
+              type: string
+        - name: parameters_uid
+          in: query
+          description: Return records with specific parameters sets
+          schema:
+            type: array
+            items:
+              type: string
+        - name: recorded_from
+          in: query
+          description: Starting recording datetime for records filtering
+          schema:
+            type: string
+            format: date-time
+        - name: recorded_to
+          in: query
+          description: Ending recording datetime for records filtering
+          schema:
+            type: string
+            format: date-time
+        - name: uploaded
+          in: query
+          description: Return only records, that has/hasn't been uploaded
+          schema:
+            type: boolean
+        - name: label
+          in: query
+          description: Return records specifically labeled
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Record'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/NotPermitted'
+    post:
+      tags:
+        - record
+      summary: Register a new record
+      operationId: app.labapp_api.new_record
+      requestBody:
+        description: Record object that will be registered
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Record'
+      responses:
+        200:
+          description: Record added successfuly.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Record'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/NotPermitted'
+  /record/{record_uid}:    
+    get:
+      tags:
+        - record
+      summary: Find record by UID and return
+      operationId: app.labapp_api.get_record
+      parameters:
+        - name: record_uid
+          in: path
+          description: UID of record to return
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Record'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/NotPermitted'
+        404:
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+        - record
+      summary: Deletes a record
+      operationId: app.labapp_api.delete_record
+      parameters:
+        - name: record_uid
+          in: path
+          description: Record uid to delete
+          required: true
+          schema:
+            type: string
+      responses:
+        204:
+          description: Record deleted successfuly.
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/NotPermitted'
+        404:
+          $ref: '#/components/responses/NotFound'
+  /record/{record_uid}/label/{label_uid}:
+    put:
+      tags:
+        - record
+      summary: Update label of record
+      operationId: app.labapp_api.update_records_label
+      parameters:
+        - name: record_uid
+          in: path
+          description: UID of record that file of will be downloaded
+          required: true
+          schema:
+            type: string
+        - name: label_uid
+          in: path
+          description: UID of label that will be given to the record
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Record'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/NotPermitted'
+        404:
+          $ref: '#/components/responses/NotFound'
+  /record/{record_uid}/parameters:
+    get:
+      tags:
+        - record
+      summary: Return recording parameters of record
+      operationId: app.labapp_api.get_record_parameters
+      parameters:
+        - name: record_uid
+          in: path
+          description: UID of record that parameters will be returned
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Record parameters set
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecordingParameters'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/NotPermitted'
+        404:
+          $ref: '#/components/responses/NotFound'
+  /record/{record_uid}/download:
+    get:
+      tags:
+        - record
+      summary: Download sound record file
+      operationId: app.labapp_api.download_record
+      parameters:
+        - name: record_uid
+          in: path
+          description: UID of record that file of will be downloaded
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: successful operation
+          content:
+            audio/wav:
+              schema:
+                type: string
+                format: binary
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/NotPermitted'
+        404:
+          $ref: '#/components/responses/NotFound'
+  /record/{record_uid}/upload:
+    post:
+      tags:
+        - record
+      summary: Upload sound record file
+      operationId: app.labapp_api.upload_record
+      requestBody:
+        content:
+          audio/wav:
+            schema:
+              type: string
+              format: binary
+      parameters:
+        - name: record_uid
+          in: path
+          description: UID of record that file of will be updated
+          required: true
+          schema:
+            type: string
+        - name: recorder_key
+          in: query
+          description: Unique recorder key for recorder authentication
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Record'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/NotPermitted'
+        404:
+          $ref: '#/components/responses/NotFound'
   /recorder:    
     get:
       tags:
       - recorder
       summary: Return all recorders
       operationId: app.labapp_api.get_recorders
+      parameters:
+        - name: series_uid
+          in: query
+          description: Return recorders responsible for specific serieses
+          schema:
+            type: array
+            items:
+              type: string
+        - name: created_from
+          in: query
+          description: Starting creation date for recorders filtering
+          schema:
+            type: string
+            format: date-time
+        - name: created_to
+          in: query
+          description: Ending creation date for recorders filtering
+          schema:
+            type: string
+            format: date-time
+        - name: busy
+          in: query
+          description: Returns only recorders with/without assigned current series
+          schema:
+            type: boolean
       responses:
         200:
           description: successful operation
@@ -42,7 +328,7 @@ paths:
     post:
       tags:
         - recorder
-      summary: Add a new recorder to laboratory
+      summary: Register a new recorder to laboratory
       operationId: app.labapp_api.new_recorder
       requestBody:
         description: Recorder object to add to laboratory
@@ -51,6 +337,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/Recorder'
+            
       responses:
         200:
           description: Recorder added successfuly.
@@ -126,21 +413,225 @@ paths:
           $ref: '#/components/responses/NotPermitted'
         404:
           $ref: '#/components/responses/NotFound'
-    delete:
+  /recorder/{recorder_uid}/current_series:    
+    get:
       tags:
         - recorder
-      summary: Deletes a recorder
-      operationId: app.labapp_api.delete_recorder
+      summary: Return series currently managed by recorder
+      operationId: app.labapp_api.get_current_series
+      parameters:
+      - name: recorder_uid
+        in: path
+        description: UID of recorder
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Series'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/NotPermitted'
+        404:
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+        - recorder
+      summary: Set recorders current series
+      operationId: app.labapp_api.set_current_series
       parameters:
         - name: recorder_uid
           in: path
-          description: UID if recorder that will be deleted
+          description: UID of recorder that will be updated
+          required: true
+          schema:
+            type: string
+        - name: series_uid
+          in: query
+          description: UID of series that will be set mainaned by recorder
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Recorder updated successfuly.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Series'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/NotPermitted'
+        404:
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+        - recorder
+      summary: Unset current series mainaned by recorder
+      operationId: app.labapp_api.unset_current_series
+      parameters:
+        - name: recorder_uid
+          in: path
+          description: UID if recorder that will be cleared out of jobs
           required: true
           schema:
             type: string
       responses:
         204:
           description: Recorder deleted successfuly.
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/NotPermitted'
+        404:
+          $ref: '#/components/responses/NotFound'
+  /recording_parameters:
+    get:
+      tags:
+        - recording_parameters
+      summary: Return all recording parameters sets
+      operationId: app.labapp_api.get_recording_parameters_sets
+      parameters:
+        - name: series_uid
+          in: query
+          description: UIDs of serieses, that parameters sets will be returned
+          schema:
+            type: array
+            items:
+              type: string
+        - name: created_from
+          in: query
+          description: Starting date for parameters filtering
+          schema:
+            type: string
+            format: date-time
+        - name: created_to
+          in: query
+          description: Ending date for parameters filtering
+          schema:
+            type: string
+            format: date-time
+        - name: samplerate
+          in: query
+          description: Samplerate value for parameters filtering
+          schema:
+            type: array
+            items:
+              type: integer
+        - name: channels
+          in: query
+          description: Channels number for parameters filtering
+          schema:
+            type: array
+            items:
+              type: integer
+        - name: duration
+          in: query
+          description: Duration time for parameters filtering
+          schema:
+            type: array
+            items:
+              type: number
+        - name: amplification
+          in: query
+          description: Amplification for parameters filtering
+          schema:
+            type: array
+            items:
+              type: number
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RecordingParameters'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/NotPermitted'
+    post:
+      tags:
+        - recording_parameters
+      summary: Add a new set of recording parameters
+      operationId: app.labapp_api.new_recording_parameters
+      requestBody:
+        description: Recording parameters set object that will be created
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecordingParameters'
+      responses:
+        200:
+          description: Recording parameters set added successfuly.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecordingParameters'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/NotPermitted'
+        405:
+          $ref: '#/components/responses/MethodNotAllowed'
+  /parameters/{parameters_uid}:    
+    get:
+      tags:
+        - recording_parameters
+      summary: Find recording parameters set by UID and return
+      operationId: app.labapp_api.get_recording_parameters
+      parameters:
+      - name: parameters_uid
+        in: path
+        description: UID of parameters set to return
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecordingParameters'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/NotPermitted'
+        404:
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+        - recording_parameters
+      summary: Deletes a recording parameters set
+      operationId: app.labapp_api.delete_recording_parameters
+      parameters:
+        - name: parameters_uid
+          in: path
+          description: UID if recording parameters set that will be deleted
+          required: true
+          schema:
+            type: string
+      responses:
+        204:
+          description: Recording parameters deleted successfuly.
         400:
           $ref: '#/components/responses/BadRequest'
         401:
@@ -156,33 +647,58 @@ paths:
       summary: Return all serieses
       operationId: app.labapp_api.get_serieses
       parameters:
-        - in: query
-          name: recorder_uid
+        - name: recorder_uid
+          in: query
           description: UID of recorder, that adds records to series
           schema:
             type: string
-        - in: query
-          name: created_from
+        - name: created_from
+          in: query
           description: Starting date for serieses filtering
           schema:
             type: string
             format: date-time
-        - in: query
-          name: created_to
+        - name: created_to
+          in: query
           description: Ending date for serieses filtering
           schema:
             type: string
             format: date-time
-        - in: query
-          name: min_duration
+        - name: min_duration
+          in: query
           description: Minimum duration for serieses filtering
           schema:
-            type: number
-        - in: query
-          name: max_duration
+            type: array
+            items:
+              type: number
+        - name: max_duration
+          in: query
           description: Maximum duration for serieses filtering
           schema:
-            type: number
+            type: array
+            items:
+              type: number
+        - name: samplerate
+          in: query
+          description: Samplerate
+          schema:
+            type: array
+            items:
+              type: integer
+        - name: channels
+          in: query
+          description: Number of channels
+          schema:
+            type: array
+            items:
+              type: integer
+        - name: amplification
+          in: query
+          description: Amplification
+          schema:
+            type: array
+            items:
+              type: number
       responses:
         200:
           description: successful operation
@@ -264,8 +780,8 @@ paths:
             schema:
               $ref: '#/components/schemas/Series'
       parameters:
-        - in: path
-          name: series_uid
+        - name: series_uid
+          in: path
           description: UID of series that will be updated
           required: true
           schema:
@@ -300,191 +816,6 @@ paths:
       responses:
         204:
           $ref: '#/components/responses/NoContent'
-        401:
-          $ref: '#/components/responses/Unauthorized'
-        403:
-          $ref: '#/components/responses/NotPermitted'
-        404:
-          $ref: '#/components/responses/NotFound'
-  /record:    
-    get:
-      tags:
-        - record
-      summary: Return all records
-      operationId: app.labapp_api.get_records
-      responses:
-        200:
-          description: successful operation
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Record'
-        401:
-          $ref: '#/components/responses/Unauthorized'
-        403:
-          $ref: '#/components/responses/NotPermitted'
-    post:
-      tags:
-        - record
-      summary: Register a new record
-      operationId: app.labapp_api.new_record
-      requestBody:
-        description: Record object that will be registered
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Record'
-      responses:
-        200:
-          description: Record added successfuly.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Record'
-        400:
-          $ref: '#/components/responses/BadRequest'
-        401:
-          $ref: '#/components/responses/Unauthorized'
-        403:
-          $ref: '#/components/responses/NotPermitted'
-  /record/{record_uid}:    
-    get:
-      tags:
-        - record
-      summary: Find record by UID and return
-      operationId: app.labapp_api.get_record
-      parameters:
-        - name: record_uid
-          in: path
-          description: UID of record to return
-          required: true
-          schema:
-            type: string
-      responses:
-        200:
-          description: successful operation
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Record'
-        401:
-          $ref: '#/components/responses/Unauthorized'
-        403:
-          $ref: '#/components/responses/NotPermitted'
-        404:
-          $ref: '#/components/responses/NotFound'
-    put:
-      tags:
-        - record
-      summary: Update record
-      operationId: app.labapp_api.update_record
-      requestBody:
-        description: Record object that will be registered
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Record'
-      parameters:
-        - in: path
-          name: record_uid
-          description: UID of record that will be updated
-          required: true
-          schema:
-            type: string
-      responses:
-        200:
-          description: Record added successfuly.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Record'
-        400:
-          $ref: '#/components/responses/BadRequest'
-        401:
-          $ref: '#/components/responses/Unauthorized'
-        403:
-          $ref: '#/components/responses/NotPermitted'
-        404:
-          $ref: '#/components/responses/NotFound'
-    delete:
-      tags:
-        - record
-      summary: Deletes a record
-      operationId: app.labapp_api.delete_record
-      parameters:
-        - in: path
-          name: record_uid
-          description: Record uid to delete
-          required: true
-          schema:
-            type: string
-      responses:
-        204:
-          description: Record deleted successfuly.
-        400:
-          $ref: '#/components/responses/BadRequest'
-        401:
-          $ref: '#/components/responses/Unauthorized'
-        403:
-          $ref: '#/components/responses/NotPermitted'
-        404:
-          $ref: '#/components/responses/NotFound'
-  /record/{record_uid}/file:
-    get:
-      tags:
-        - record
-      summary: Download sound record file
-      operationId: app.labapp_api.download_record
-      parameters:
-        - in: path
-          name: record_uid
-          description: UID of record that file of will be downloaded
-          required: true
-          schema:
-            type: string
-      responses:
-        200:
-          description: A record wav file
-          content:
-            audio/wav:
-              schema:
-                type: string
-                format: binary
-        400:
-          $ref: '#/components/responses/BadRequest'
-        401:
-          $ref: '#/components/responses/Unauthorized'
-        403:
-          $ref: '#/components/responses/NotPermitted'
-        404:
-          $ref: '#/components/responses/NotFound'
-    put:
-      tags:
-        - record
-      summary: Upload sound record file
-      operationId: app.labapp_api.upload_record
-      requestBody:
-        content:
-          audio/wav:
-            schema:
-              type: string
-              format: binary
-      parameters:
-        - in: path
-          name: record_uid
-          description: UID of record that file of will be updated
-          required: true
-          schema:
-            type: string
-      responses:
-        204:
-          $ref: '#/components/responses/NoContent'
-        400:
-          $ref: '#/components/responses/BadRequest'
         401:
           $ref: '#/components/responses/Unauthorized'
         403:
@@ -529,62 +860,79 @@ components:
             $ref: '#/components/schemas/Error'
 
   schemas:
-    Recorder:
-      type: object
-      required:
-        - uid
-      properties:
-        uid:
-          type: string
-        location_description:
-          type: string
-    Series:
-      type: object
-      required:
-        - uid
-        - recorder_uid
-      properties:
-        uid:
-          type: string
-        recorder_uid:
-          type: string
-        created_at:
-          type: string
-          format: date-time
-        min_duration:
-          type: number
-        max_duration:
-          type: number
     Record:
       type: object
       required:
-        - uid
         - series_uid
+        - start_time
       properties:
         uid:
           type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
         series_uid:
           type: string
-        duration:
-          type: number
-        samplerate:
-          type: integer
-        channels:
-          type: integer
+        label_uid:
+          type: string
+          nullable: true
         start_time:
+          type: string
+          format: date-time
+        stop_time:
           type: string
           format: date-time
         uploaded_at:
           type: string
           format: date-time
-        label:
+          nullable: true
+    Recorder:
+      type: object
+      properties:
+        uid:
           type: string
-          enum:
-            - GOOD
-            - WRONG
-            - UNKNOWN
-        filepath:
+        created_at:
           type: string
+          format: date-time
+        location_description:
+          type: string
+          nullable: true
+        current_series:
+          type: string
+          nullable: true
+    RecordingParameters:
+      type: object
+      properties:
+        uid:
+          type: string
+        created_at:
+          type: string
+        samplerate:
+          type: integer
+        channels:
+          type: integer
+        duration:
+          type: number
+        amplification:
+          type: number
+    Series:
+      type: object
+      required:
+        - recorder_uid
+        - parameters
+      properties:
+        uid:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        description:
+          type: string
+        recorder_uid:
+          type: string
+        parameters: 
+          $ref: '#/components/schemas/RecordingParameters'
     Error:
       type: object
       properties:
