@@ -4,7 +4,6 @@ import json
 from decimal import Decimal
 
 from flask_migrate import Migrate
-from flask_sqlalchemy import SQLAlchemy
 
 
 class FlaskJSONEncoder(json.JSONEncoder):

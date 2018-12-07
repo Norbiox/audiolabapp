@@ -1,27 +1,26 @@
-import jwt
 import uuid
 from datetime import timedelta
-from passlib.apps import custom_app_context as pwd_context
 
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import orm
+from sqlalchemy import event, orm
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import validates
+
+from .helpers import get_object
 
 db = SQLAlchemy()
 
 
 class Label(db.Model):
-    __tablename__ = 'record_label'
+    __tablename__ = 'label'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     uid = db.Column(
         db.String(10), nullable=False, unique=True, default=uuid.uuid4
     )
-    created_at = db.Column(db.DateTime, default=db.func.now)
+    created_at = db.Column(db.DateTime, default=db.func.now())
     description = db.Column(db.String(100), default="")
 
-    records = db.relationship('Record', back_populates='label', lazy=True,
-                              cascade="all, delete-orphan")
+    records = db.relationship("Record", back_populates="label")
 
     def to_dict(self):
         return {
@@ -31,21 +30,34 @@ class Label(db.Model):
         }
 
 
+@event.listens_for(Label.__table__, 'after_create')
+def create_user_roles(*args, **kwargs):
+    db.session.add(Label(
+        uid='normal', description='Record of normal state'
+    ))
+    db.session.add(Label(
+        uid='anomaly', description='Record of anomalied state'
+    ))
+    db.session.commit()
+
+
 class Record(db.Model):
     __tablename__ = 'record'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     uid = db.Column(db.String(36), unique=True, nullable=False,
                     default=uuid.uuid4)
-    created_at = db.Column(db.DateTime, default=db.func.now)
+    created_at = db.Column(db.DateTime, default=db.func.now())
     start_time = db.Column(db.DateTime)
     uploaded_at = db.Column(db.DateTime)
-    filepath = db.Column(db.String)
+    filepath = db.Column(db.String(200))
 
-    series_uid = db.Column(db.String, db.ForeignKey('series.uid'),
-                           nullable=False)
-    label_uid = db.Column(db.String, db.ForeignKey('record_label.uid'),
+    series_uid = db.Column(db.String(36), db.ForeignKey('series.uid'))
+    series = db.relationship("Series", back_populates="records")
+
+    label_uid = db.Column(db.String(36), db.ForeignKey('label.uid'),
                           nullable=True, default=None)
+    label = db.relationship("Label", back_populates="records")
 
     @hybrid_property
     def parameters(self):
@@ -73,34 +85,36 @@ class Recorder(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     uid = db.Column(db.String(36), unique=True, index=True, nullable=False,
                     default=uuid.uuid4)
-    created_at = db.Column(db.DateTime, default=db.func.now)
+    created_at = db.Column(db.DateTime, default=db.func.now())
     location_description = db.Column(db.String(100), default="")
 
-    current_series_uid = db.Column(db.String, db.ForeignKey('series.uid'),
-                                   nullable=True, default=None)
+    current_series_uid = db.Column(db.String(36), nullable=True, default=None)
 
-    serieses = db.relationship('Series', backref='recorder', lazy=True,
-                               cascade="all, delete-orphan")
+    serieses = db.relationship("Series", back_populates="recorder")
 
     @hybrid_property
     def current_series(self):
-        try:
-            return Series.query.filter_by(uid=self.current_series_uid).one()
-        except orm.exc.NoResultFound:
-            return None
+        if self.current_series_uid is not None:
+            try:
+                return Series.query.filter_by(
+                    uid=self.current_series_uid
+                ).one()
+            except orm.exc.NoResultFound:
+                pass
+        return None
 
     @validates('current_series_uid')
-    def validate_actual_series_uid(self, key, current_series_uid):
+    def validate_current_series_uid(self, key, current_series_uid):
         try:
-            series = Series.query.filter_by(uid=current_series_uid).one()
+            series = get_object(Series, current_series_uid)
             if series.recorder_uid != self.uid:
                 raise ValueError(
                     "Series with uid {} is not maintaned by recorder {}".
                     format(series.uid, self.uid)
                 )
         except orm.exc.NoResultFound:
-            raise ValueError("Series with uid {} does not exists".
-                             format(current_series_uid))
+            return None
+        return series.uid
 
     def to_dict(self):
         return {
@@ -117,7 +131,7 @@ class RecordingParameters(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     uid = db.Column(db.String(36), unique=True, nullable=False,
                     default=uuid.uuid4)
-    created_at = db.Column(db.DateTime, default=db.func.now)
+    created_at = db.Column(db.DateTime, default=db.func.now())
     samplerate = db.Column(db.Integer, default=44100)
     channels = db.Column(db.Integer, default=1)
     duration = db.Column(db.Numeric(precision=10, scale=7, asdecimal=False),
@@ -127,8 +141,31 @@ class RecordingParameters(db.Model):
         default=1.0
     )
 
-    serieses = db.relationship('Series', backref='parameters', lazy=True,
-                               cascade="all, delete-orphan")
+    serieses = db.relationship("Series", back_populates="parameters")
+
+    @validates('samplerate')
+    def validate_samplerate(self, key, samplerate):
+        if samplerate <= 0:
+            raise ValueError("Samplerate must be more than zero")
+        return samplerate
+
+    @validates('channels')
+    def validate_channels(self, key, channels):
+        if channels <= 0:
+            raise ValueError("Channels number must be more than zero")
+        return channels
+
+    @validates('duration')
+    def validate_duration(self, key, duration):
+        if duration <= 0:
+            raise ValueError("Duration must be more than zero")
+        return duration
+
+    @validates('amplification')
+    def validate_amplification(self, key, amplification):
+        if amplification <= 0:
+            raise ValueError("Amplification must be more than zero")
+        return amplification
 
     def to_dict(self):
         return {
@@ -147,16 +184,24 @@ class Series(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     uid = db.Column(db.String(36), unique=True, nullable=False,
                     default=uuid.uuid4)
-    created_at = db.Column(db.DateTime, default=db.func.now)
+    created_at = db.Column(db.DateTime, default=db.func.now())
     description = db.Column(db.String(255), nullable=True)
 
-    parameters_uid = db.Column(db.String,
-                               db.ForeignKey('recording_parameters.uid'),
-                               nullable=False)
-    recorder_uid = db.Column(db.String, db.ForeignKey('recorder.uid'),
+    parameters_uid = db.Column(db.String(36),
+                               db.ForeignKey('recording_parameters.uid'))
+    parameters = db.relationship("RecordingParameters",
+                                 back_populates="serieses")
+
+    recorder_uid = db.Column(db.String(36), db.ForeignKey('recorder.uid'),
                              nullable=False)
-    records = db.relationship('Record', backref='series', lazy=True,
-                              cascade="all, delete-orphan")
+    recorder = db.relationship("Recorder", back_populates="serieses")
+
+    records = db.relationship("Record", back_populates="series")
+
+    @hybrid_property
+    def is_active(self):
+        recorder = get_object(Recorder, self.recorder_uid)
+        return recorder.current_series_uid == self.uid
 
     def to_dict(self):
         return {
@@ -165,5 +210,5 @@ class Series(db.Model):
             'recorder_uid': self.recorder.uid,
             'description': self.description,
             'parameters_uid': self.parameters_uid,
-            'parameters': self.parameters.to_dict
+            'parameters': self.parameters.to_dict()
         }

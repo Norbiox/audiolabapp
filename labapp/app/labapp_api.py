@@ -1,13 +1,39 @@
 import flask
+import pdb
 from connexion import request
-from sqlalchemy import and_, exc, orm
+from sqlalchemy import and_, exc, orm, or_
 
-from .models import db, Record, Recorder, RecordingParameters, Series
+from .helpers import (
+    get_object_or_404, increase_last_digit, parse_filtering_dates
+)
+from .models import db, Label, Record, Recorder, RecordingParameters, Series
 
 
 def get_records(series_uid=None, parameters_uid=None, recorded_from=None,
-                recorded_to=None, uploaded=None, label=None,):
-    return []
+                recorded_to=None, uploaded=None, label=None):
+    filters = []
+    rf, rt = parse_filtering_dates(recorded_from, recorded_to)
+    filters.append(Record.start_time >= rf)
+    filters.append(Record.start_time <= rt)
+    if series_uid:
+        filters.append(
+            or_(*[Record.series_uid == uid for uid in series_uid])
+        )
+    if parameters_uid:
+        filters.append(
+            or_(*[Record.series.parameters_uid == uid
+                  for uid in parameters_uid])
+        )
+    if uploaded:
+        filters.append(Record.uploaded_at is not None)
+    elif uploaded is not None:
+        filters.append(Record.uploaded_at is None)
+    if label:
+        filters.append(
+            or_(*[Record.label_uid == uid for uid in label])
+        )
+    records = Record.query.filter(and_(*filters))
+    return [r.to_dict() for r in records]
 
 
 def new_record():
@@ -15,19 +41,38 @@ def new_record():
 
 
 def get_record(record_uid):
-    return {}
+    return get_object_or_404(Record, record_uid).to_dict()
 
 
 def delete_record(record_uid):
-    return {}
+    record = get_object_or_404(Record, record_uid)
+    db.session.delete(record)
+    return ('Record deleted', 204)
 
 
-def update_records_label(record_uid, label_uid):
-    return {}
+def get_records_label(record_uid):
+    record = get_object_or_404(Record, record_uid)
+    if record.label_uid is None:
+        return {}
+    label = get_object_or_404(Label, record.label_uid)
+    return label.to_dict()
+
+
+def update_records_label(record_uid):
+    record = get_object_or_404(Record, record_uid)
+    data = request.get_json()
+    label_uid = data.put('label_uid')
+    if label_uid is not None:
+        get_object_or_404(Label, label_uid)
+    record.label_uid = label_uid
+    db.session.add(record)
+    db.session.commit()
+    return record.to_dict()
 
 
 def get_record_parameters(record_uid):
-    return {}
+    record = get_object_or_404(Record, record_uid)
+    return record.series.parameters.to_dict()
 
 
 def download_record(record_uid):
@@ -40,79 +85,169 @@ def upload_record(record_uid, recorder_key):
 
 def get_recorders(series_uid=None, created_from=None, created_to=None,
                   busy=None):
-    return []
+    filters = []
+    created_from, created_to = parse_filtering_dates(created_from, created_to)
+    if created_from:
+        filters.append(Recorder.created_at >= created_from)
+    if created_to:
+        filters.append(Recorder.created_at <= created_to)
+    if series_uid:
+        filters.append(
+            or_(*[uid in [s.uid for s in Recorder.serieses]
+                  for uid in series_uid])
+        )
+    if busy is not None:
+        if busy:
+            filters.append(Recorder.current_series_uid != None)
+        if not busy:
+            filters.append(Recorder.current_series_uid == None)
+    recorders = Recorder.query.filter(and_(*filters))
+    return [r.to_dict() for r in recorders]
 
 
 def new_recorder():
     recorder_data = request.get_json()
+    recorder_uid = recorder_data.pop('uid')
+    location_description = recorder_data.pop('location_description')
     try:
         recorder = Recorder(
-            location_description=recorder_data['location_description']
+            uid=recorder_uid,
+            location_description=location_description
         )
         db.session.add(recorder)
         db.session.commit()
         return recorder.to_dict()
     except exc.IntegrityError as ex:
         db.session.rollback()
-        flask.abort(400, 'Bad request')
+        flask.abort(400, str(ex))
     except ValueError as ex:
         flask.abort(400, str(ex))
 
 
 def get_recorder(recorder_uid):
-    try:
-        recorder = Recorder.query.filter(Recorder.uid == recorder_uid).one()
-        return recorder.to_dict()
-    except orm.exc.NoResultFound:
-        flask.abort(404, 'Recorder not found')
+    recorder = get_object_or_404(Recorder, recorder_uid)
+    return recorder.to_dict()
 
 
 def update_recorder(recorder_uid):
+    recorder = get_object_or_404(Recorder, recorder_uid)
     recorder_data = request.get_json()
+    location_description = recorder_data.pop('location_description')
     try:
-        recorder = Recorder.query.filter(Recorder.uid == recorder_uid).one()
-        recorder.update(
-            location_description=recorder_data['location_description'])
+        if location_description is not None:
+            recorder.location_description = location_description
         db.session.commit()
         return recorder.to_dict()
-    except orm.exc.NoResultFound:
-        flask.abort(404, 'Recorder not found')
     except exc.IntegrityError as ex:
         db.session.rollback()
-        flask.abort(400, 'Bad request')
+        flask.abort(400, str(ex))
     except ValueError as ex:
         flask.abort(400, str(ex))
 
 
 def get_current_series(recorder_uid):
-    return {}
+    recorder = get_object_or_404(Recorder, recorder_uid)
+    series = get_object_or_404(Series, recorder.current_series_uid)
+    return series.to_dict()
 
 
-def set_current_series(recorder_uid, series_uid):
-    return {}
-
-
-def unset_current_series(recorder_uid):
-    return {}
+def set_current_series(recorder_uid, series_uid=None):
+    recorder = get_object_or_404(Recorder, recorder_uid)
+    print(series_uid)
+    if series_uid is None:
+        recorder.current_series_uid = None
+        db.session.commit()
+        return (f'Current series of recorder {recorder.uid} unset.', 204)
+    series = get_object_or_404(Series, series_uid)
+    try:
+        recorder.current_series_uid = series_uid
+        db.session.commit()
+        return series.to_dict()
+    except exc.IntegrityError as ex:
+        db.session.rollback()
+        flask.abort(400, str(ex))
+    except ValueError as ex:
+        flask.abort(400, str(ex))
 
 
 def get_recording_parameters_sets(series_uid=None, created_from=None,
                                   created_to=None, samplerate=None,
                                   channels=None, duration=None,
                                   amplification=None):
-    return []
+    filters = []
+    created_from, created_to = parse_filtering_dates(created_from, created_to)
+    if created_from:
+        filters.append(RecordingParameters.created_at >= created_from)
+    if created_to:
+        filters.append(RecordingParameters.created_at <= created_to)
+    if series_uid:
+        filters.append(
+            or_(*[uid in [s.uid for s in RecordingParameters.serieses]
+                  for uid in series_uid])
+        )
+    if samplerate:
+        filters.append(
+            or_(*[RecordingParameters.samplerate == s for s in samplerate])
+        )
+    if channels:
+        filters.append(
+            or_(*[RecordingParameters.channels == c for c in channels])
+        )
+    if duration:
+        filters.append(
+            or_(*[RecordingParameters.duration >= d for d in duration])
+        )
+        filters.append(
+            or_(*[RecordingParameters.duration < increase_last_digit(d)
+                  for d in duration])
+        )
+    if amplification:
+        filters.append(
+            or_(*[RecordingParameters.amplification >= a
+                  for a in amplification])
+        )
+        filters.append(
+            or_(*[RecordingParameters.amplification < increase_last_digit(a)
+                  for a in amplification])
+        )
+    parameters_sets = RecordingParameters.query.filter(and_(*filters))
+    return [ps.to_dict() for ps in parameters_sets]
 
 
 def new_recording_parameters():
-    return {}
+    parameters = request.get_json()
+    try:
+        parameters_set = RecordingParameters(**parameters)
+    except ValueError as ex:
+        flask.abort(400, str(ex))
+    try:
+        # check, if similar set does not already exist in database
+        sets = RecordingParameters.query.filter(and_(*[
+            RecordingParameters.samplerate == parameters_set.samplerate,
+            RecordingParameters.channels == parameters_set.channels,
+            RecordingParameters.duration == parameters_set.duration,
+            RecordingParameters.amplification == parameters_set.amplification
+        ])).one()
+        return sets.to_dict()
+    except orm.exc.NoResultFound:
+        try:
+            db.session.add(parameters_set)
+            db.session.commit()
+            return parameters_set.to_dict()
+        except exc.IntegrityError as ex:
+            db.session.rollback()
+            flask.abort(400, str(ex))
 
 
 def get_recording_parameters(parameters_uid):
-    return {}
+    parameters = get_object_or_404(RecordingParameters, parameters_uid)
+    return parameters.to_dict()
 
 
 def delete_recording_parameters(parameters_uid):
-    return {}
+    parameters = get_object_or_404(RecordingParameters, parameters_uid)
+    db.session.delete(parameters)
+    return (f'Parameters {parameters_uid} deleted', 204)
 
 
 def get_serieses(recorder_uid=None, created_from=None, created_to=None,

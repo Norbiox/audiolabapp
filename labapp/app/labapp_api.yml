@@ -19,6 +19,7 @@ tags:
   description: Sound recording parameters
 - name: series
   description: Series of records
+
 paths:
   /record:    
     get:
@@ -152,7 +153,32 @@ paths:
           $ref: '#/components/responses/NotPermitted'
         404:
           $ref: '#/components/responses/NotFound'
-  /record/{record_uid}/label/{label_uid}:
+  /record/{record_uid}/label:
+    get:
+      tags:
+        - record
+      summary: Get record label details
+      operationId: app.labapp_api.get_records_label
+      parameters:
+        - name: record_uid
+          in: path
+          description: UID of record that file of will be downloaded
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Label'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/NotPermitted'
+        404:
+          $ref: '#/components/responses/NotFound'
     put:
       tags:
         - record
@@ -166,9 +192,8 @@ paths:
           schema:
             type: string
         - name: label_uid
-          in: path
+          in: query
           description: UID of label that will be given to the record
-          required: true
           schema:
             type: string
       responses:
@@ -388,9 +413,7 @@ paths:
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: '#/components/schemas/Recorder'
+              $ref: '#/components/schemas/Recorder'
       parameters:
         - name: recorder_uid
           in: path
@@ -413,7 +436,7 @@ paths:
           $ref: '#/components/responses/NotPermitted'
         404:
           $ref: '#/components/responses/NotFound'
-  /recorder/{recorder_uid}/current_series:    
+  /recorder/{recorder_uid}/current_series:
     get:
       tags:
         - recorder
@@ -454,39 +477,17 @@ paths:
         - name: series_uid
           in: query
           description: UID of series that will be set mainaned by recorder
-          required: true
           schema:
             type: string
       responses:
         200:
-          description: Recorder updated successfuly.
+          description: Recorders current series updated.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Series'
-        400:
-          $ref: '#/components/responses/BadRequest'
-        401:
-          $ref: '#/components/responses/Unauthorized'
-        403:
-          $ref: '#/components/responses/NotPermitted'
-        404:
-          $ref: '#/components/responses/NotFound'
-    delete:
-      tags:
-        - recorder
-      summary: Unset current series mainaned by recorder
-      operationId: app.labapp_api.unset_current_series
-      parameters:
-        - name: recorder_uid
-          in: path
-          description: UID if recorder that will be cleared out of jobs
-          required: true
-          schema:
-            type: string
-      responses:
         204:
-          description: Recorder deleted successfuly.
+          description: Recorders current series unset.
         400:
           $ref: '#/components/responses/BadRequest'
         401:
@@ -495,7 +496,7 @@ paths:
           $ref: '#/components/responses/NotPermitted'
         404:
           $ref: '#/components/responses/NotFound'
-  /recording_parameters:
+  /parameters:
     get:
       tags:
         - recording_parameters
@@ -860,6 +861,16 @@ components:
             $ref: '#/components/schemas/Error'
 
   schemas:
+    Label:
+      type: object
+      properties:
+        uid:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        description:
+          type: string
     Record:
       type: object
       required:
