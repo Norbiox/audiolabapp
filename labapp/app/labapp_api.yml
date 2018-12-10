@@ -652,7 +652,16 @@ paths:
           in: query
           description: UID of recorder, that adds records to series
           schema:
-            type: string
+            type: array
+            items:
+              type: string
+        - name: parameters_uid
+          in: query
+          description: UID of recording parameters set used in series
+          schema:
+            type: array
+            items:
+              type: string
         - name: created_from
           in: query
           description: Starting date for serieses filtering
@@ -665,20 +674,6 @@ paths:
           schema:
             type: string
             format: date-time
-        - name: min_duration
-          in: query
-          description: Minimum duration for serieses filtering
-          schema:
-            type: array
-            items:
-              type: number
-        - name: max_duration
-          in: query
-          description: Maximum duration for serieses filtering
-          schema:
-            type: array
-            items:
-              type: number
         - name: samplerate
           in: query
           description: Samplerate
@@ -693,6 +688,13 @@ paths:
             type: array
             items:
               type: integer
+        - name: duration
+          in: query
+          description: Record duration
+          schema:
+            type: array
+            items:
+              type: number
         - name: amplification
           in: query
           description: Amplification
@@ -700,6 +702,11 @@ paths:
             type: array
             items:
               type: number
+        - name: is_active
+          in: query
+          description: Return serieses actively maintained by recorders
+          schema:
+            type: boolean
       responses:
         200:
           description: successful operation
@@ -929,9 +936,6 @@ components:
           type: number
     Series:
       type: object
-      required:
-        - recorder_uid
-        - parameters
       properties:
         uid:
           type: string
@@ -942,8 +946,13 @@ components:
           type: string
         recorder_uid:
           type: string
-        parameters: 
-          $ref: '#/components/schemas/RecordingParameters'
+        parameters_uid: 
+          type: string
+        parameters:
+          nullable: true
+          $ref: "#/components/schemas/RecordingParameters"
+        is_active:
+          type: boolean
     Error:
       type: object
       properties:

@@ -31,7 +31,7 @@ class Label(db.Model):
 
 
 @event.listens_for(Label.__table__, 'after_create')
-def create_user_roles(*args, **kwargs):
+def create_labels(*args, **kwargs):
     db.session.add(Label(
         uid='normal', description='Record of normal state'
     ))
@@ -198,11 +198,6 @@ class Series(db.Model):
 
     records = db.relationship("Record", back_populates="series")
 
-    @hybrid_property
-    def is_active(self):
-        recorder = get_object(Recorder, self.recorder_uid)
-        return recorder.current_series_uid == self.uid
-
     def to_dict(self):
         return {
             'uid': self.uid,
@@ -210,5 +205,5 @@ class Series(db.Model):
             'recorder_uid': self.recorder.uid,
             'description': self.description,
             'parameters_uid': self.parameters_uid,
-            'parameters': self.parameters.to_dict()
+            'parameters': self.parameters.to_dict() if self.parameters else None
         }

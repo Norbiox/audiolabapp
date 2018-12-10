@@ -1,10 +1,7 @@
 import pytest
+from datetime import datetime
 
-from datetime import date, datetime
-from dateutil.tz import tzutc
-
-from app.helpers import *
-
+from app.helpers import increase_last_digit, parse_filtering_dates
 
 def test_parsing_dates_to_filtering():
     created_from = '2018-04-21'

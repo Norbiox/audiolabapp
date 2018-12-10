@@ -37,6 +37,7 @@ class RecordingParametersFactory(factory.alchemy.SQLAlchemyModelFactory):
         sqlalchemy_session = db.session
         sqlalchemy_session_persistence = 'commit'
 
+    uid = factory.Sequence(lambda n: f"ParametersSet{n}")
     created_at = fake.date_time_this_year(before_now=True, after_now=False)
     samplerate = 44100
     channels = 1
@@ -67,3 +68,11 @@ class SeriesFactory(factory.alchemy.SQLAlchemyModelFactory):
     parameters = factory.SubFactory(
         'app.tests.fact.models.RecordingParametersFactory'
     )
+
+    @factory.post_generation
+    def records(self, create, extracted, **kwargs):
+        if not create:
+            return
+        if extracted:
+            for n in extracted:
+                self.serieses.append(n)
