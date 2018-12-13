@@ -169,90 +169,38 @@ def set_current_series(recorder_uid, series_uid=None):
         flask.abort(400, str(ex))
 
 
-def get_recording_parameters_sets(series_uid=None, created_from=None,
-                                  created_to=None, samplerate=None,
-                                  channels=None, duration=None,
-                                  amplification=None):
-    filters = []
-    created_from, created_to = parse_filtering_dates(created_from, created_to)
-    if created_from:
-        filters.append(RecordingParameters.created_at >= created_from)
-    if created_to:
-        filters.append(RecordingParameters.created_at <= created_to)
-    if series_uid:
-        filters.append(
-            or_(*[uid in [s.uid for s in RecordingParameters.serieses]
-                  for uid in series_uid])
-        )
+def get_serieses(recorder_uid=None, parameters_uid=None, created_from=None,
+                 created_to=None, duration=None, samplerate=None,
+                 channels=None, amplification=None):
+    parameters_filters = []
     if samplerate:
-        filters.append(
+        parameters_filters.append(
             or_(*[RecordingParameters.samplerate == s for s in samplerate])
         )
     if channels:
-        filters.append(
+        parameters_filters.append(
             or_(*[RecordingParameters.channels == c for c in channels])
         )
     if duration:
-        filters.append(
+        parameters_filters.append(
             or_(*[RecordingParameters.duration >= d for d in duration])
         )
-        filters.append(
+        parameters_filters.append(
             or_(*[RecordingParameters.duration < increase_last_digit(d)
                   for d in duration])
         )
     if amplification:
-        filters.append(
+        parameters_filters.append(
             or_(*[RecordingParameters.amplification >= a
                   for a in amplification])
         )
-        filters.append(
+        parameters_filters.append(
             or_(*[RecordingParameters.amplification < increase_last_digit(a)
                   for a in amplification])
         )
-    parameters_sets = RecordingParameters.query.filter(and_(*filters))
-    return [ps.to_dict() for ps in parameters_sets]
+    parameters = RecordingParameters.query.filter(and_(*parameters_filters))
+    parameters_uids = [p.to_dict()['uid'] for p in parameters]
 
-
-def new_recording_parameters(parameters={}):
-    if not parameters:
-        parameters = request.get_json()
-    try:
-        parameters_set = RecordingParameters(**parameters)
-    except ValueError as ex:
-        flask.abort(400, str(ex))
-    try:
-        # check, if similar set does not already exist in database
-        sets = RecordingParameters.query.filter(and_(*[
-            RecordingParameters.samplerate == parameters_set.samplerate,
-            RecordingParameters.channels == parameters_set.channels,
-            RecordingParameters.duration == parameters_set.duration,
-            RecordingParameters.amplification == parameters_set.amplification
-        ])).one()
-        return sets.to_dict()
-    except orm.exc.NoResultFound:
-        try:
-            db.session.add(parameters_set)
-            db.session.commit()
-            return parameters_set.to_dict()
-        except exc.IntegrityError as ex:
-            db.session.rollback()
-            flask.abort(400, str(ex))
-
-
-def get_recording_parameters(parameters_uid):
-    parameters = get_object_or_404(RecordingParameters, parameters_uid)
-    return parameters.to_dict()
-
-
-def delete_recording_parameters(parameters_uid):
-    parameters = get_object_or_404(RecordingParameters, parameters_uid)
-    db.session.delete(parameters)
-    return (f'Parameters {parameters_uid} deleted', 204)
-
-
-def get_serieses(recorder_uid=None, parameters_uid=None, created_from=None,
-                 created_to=None, duration=None, samplerate=None,
-                 channels=None, amplification=None):
     filters = []
     created_from, created_to = parse_filtering_dates(created_from, created_to)
     if created_from:
@@ -263,44 +211,32 @@ def get_serieses(recorder_uid=None, parameters_uid=None, created_from=None,
         filters.append(
             or_(*[Series.recorder_uid == r for r in recorder_uid])
         )
-    if any([duration, samplerate, channels, amplification]):
-        parameters_sets = get_recording_parameters_sets(
-            duration=duration, samplerate=samplerate, channels=channels,
-            amplification=amplification
-        )
-        params_uids = [ps['uid'] for ps in parameters_sets]
-        filters.append(
-            or_(*[Series.parameters_uid == p for p in params_uids])
-        )
     if parameters_uid:
-        filters.append(
-            or_(*[Series.parameters_uid == p for p in parameters_uid])
-        )
+        parameters_uid = set(parameters_uid).intersection(parameters_uids)
+    else:
+        parameters_uid = parameters_uids
+    filters.append(
+        or_(*[Series.parameters_uid == p for p in parameters_uid])
+    )
     serieses = Series.query.filter(and_(*filters))
     return [s.to_dict() for s in serieses]
 
 
 def new_series():
     series_data = request.get_json()
-    parameters_uid = series_data.pop('parameters_uid', None)
     parameters = series_data.pop('parameters', None)
-    if parameters:
-        if parameters_uid:
-            parameters['uid'] = parameters_uid
-        parameters = new_recording_parameters(parameters)
-    elif parameters_uid:
-        if not parameters:
-            parameters = {}
-        try:
-            parameters = get_object(
-                RecordingParameters, parameters_uid
-            ).to_dict()
-        except orm.exc.NoResultFound:
-            parameters["uid"] = parameters_uid
-            parameters = new_recording_parameters(parameters)
-    series_data['parameters_uid'] = parameters['uid']
     try:
-        series = Series(**series_data)
+        if isinstance(parameters, str):
+            try:
+                parameters_obj = get_object(RecordingParameters, parameters)
+            except orm.exc.NoResultFound:
+                parameters_obj = RecordingParameters(uid=parameters)
+        elif isinstance(parameters, dict):
+            parameters_obj = RecordingParameters(**parameters)
+        else:
+            raise ValueError
+        series = Series(parameters_uid=parameters_obj.uid, **series_data)
+        db.session.add(parameters_obj)
         db.session.add(series)
         db.session.commit()
         return series.to_dict()
@@ -321,16 +257,15 @@ def update_series(series_uid):
     series = get_object_or_404(Series, series_uid)
     series_data = request.get_json()
     description = series_data.pop('description', None)
-    parameters_uid = series_data.pop('parameters_uid', None)
+    recorder_uid = series_data.pop('recorder_uid', None)
     try:
         if description is not None:
             series.description = description
-        if parameters_uid is not None:
+        if recorder_uid is not None:
             if series.records:
-                print(series.records)
                 flask.abort(400,
-                            "Cannot change parameters of non empty series")
-            series.parameters_uid = parameters_uid
+                            "Cannot change recorder of non empty series")
+            series.recorder_uid = recorder_uid
         db.session.commit()
         return series.to_dict()
     except exc.IntegrityError as ex:
@@ -348,3 +283,30 @@ def delete_series(series_uid):
         flask.abort(400, "Cannot delete currently maintanded series")
     db.session.delete(series)
     return (f'Series {series_uid} deleted', 204)
+
+
+def get_series_parameters(series_uid):
+    series = get_object_or_404(Series, series_uid)
+    return series.parameters.to_dict()
+
+
+def update_series_parameters(series_uid):
+    series = get_object_or_404(Series, series_uid)
+    parameters = request.get_json()
+    if isinstance(parameters, str):
+        parameters_set = get_object_or_404(RecordingParameters, parameters)
+    elif isinstance(parameters, dict):
+        parameters_set = RecordingParameters(**parameters)
+    else:
+        raise ValueError
+    series.parameters_uid = parameters_set.uid
+    try:
+        db.session.add(parameters_set)
+        db.session.commit()
+        return parameters_set.to_dict()
+    except exc.IntegrityError as ex:
+        db.session.rollback()
+        flask.abort(400, str(ex))
+    except ValueError as ex:
+        flask.abort(400, str(ex))
+

@@ -196,7 +196,8 @@ class Series(db.Model):
                              nullable=False)
     recorder = db.relationship("Recorder", back_populates="serieses")
 
-    records = db.relationship("Record", back_populates="series")
+    records = db.relationship("Record", back_populates="series",
+                              cascade="save-update, merge, delete")
 
     def to_dict(self):
         return {

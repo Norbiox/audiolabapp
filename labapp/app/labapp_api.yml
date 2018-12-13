@@ -15,8 +15,6 @@ tags:
   description: Sound record object
 - name: recorder
   description: Sound recording device
-- name: recording_parameters
-  description: Sound recording parameters
 - name: series
   description: Series of records
 
@@ -496,151 +494,6 @@ paths:
           $ref: '#/components/responses/NotPermitted'
         404:
           $ref: '#/components/responses/NotFound'
-  /parameters:
-    get:
-      tags:
-        - recording_parameters
-      summary: Return all recording parameters sets
-      operationId: app.labapp_api.get_recording_parameters_sets
-      parameters:
-        - name: series_uid
-          in: query
-          description: UIDs of serieses, that parameters sets will be returned
-          schema:
-            type: array
-            items:
-              type: string
-        - name: created_from
-          in: query
-          description: Starting date for parameters filtering
-          schema:
-            type: string
-            format: date-time
-        - name: created_to
-          in: query
-          description: Ending date for parameters filtering
-          schema:
-            type: string
-            format: date-time
-        - name: samplerate
-          in: query
-          description: Samplerate value for parameters filtering
-          schema:
-            type: array
-            items:
-              type: integer
-        - name: channels
-          in: query
-          description: Channels number for parameters filtering
-          schema:
-            type: array
-            items:
-              type: integer
-        - name: duration
-          in: query
-          description: Duration time for parameters filtering
-          schema:
-            type: array
-            items:
-              type: number
-        - name: amplification
-          in: query
-          description: Amplification for parameters filtering
-          schema:
-            type: array
-            items:
-              type: number
-      responses:
-        200:
-          description: successful operation
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/RecordingParameters'
-        400:
-          $ref: '#/components/responses/BadRequest'
-        401:
-          $ref: '#/components/responses/Unauthorized'
-        403:
-          $ref: '#/components/responses/NotPermitted'
-    post:
-      tags:
-        - recording_parameters
-      summary: Add a new set of recording parameters
-      operationId: app.labapp_api.new_recording_parameters
-      requestBody:
-        description: Recording parameters set object that will be created
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RecordingParameters'
-      responses:
-        200:
-          description: Recording parameters set added successfuly.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RecordingParameters'
-        400:
-          $ref: '#/components/responses/BadRequest'
-        401:
-          $ref: '#/components/responses/Unauthorized'
-        403:
-          $ref: '#/components/responses/NotPermitted'
-        405:
-          $ref: '#/components/responses/MethodNotAllowed'
-  /parameters/{parameters_uid}:    
-    get:
-      tags:
-        - recording_parameters
-      summary: Find recording parameters set by UID and return
-      operationId: app.labapp_api.get_recording_parameters
-      parameters:
-      - name: parameters_uid
-        in: path
-        description: UID of parameters set to return
-        required: true
-        schema:
-          type: string
-      responses:
-        200:
-          description: successful operation
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RecordingParameters'
-        401:
-          $ref: '#/components/responses/Unauthorized'
-        403:
-          $ref: '#/components/responses/NotPermitted'
-        404:
-          $ref: '#/components/responses/NotFound'
-    delete:
-      tags:
-        - recording_parameters
-      summary: Deletes a recording parameters set
-      operationId: app.labapp_api.delete_recording_parameters
-      parameters:
-        - name: parameters_uid
-          in: path
-          description: UID if recording parameters set that will be deleted
-          required: true
-          schema:
-            type: string
-      responses:
-        204:
-          description: Recording parameters deleted successfuly.
-        400:
-          $ref: '#/components/responses/BadRequest'
-        401:
-          $ref: '#/components/responses/Unauthorized'
-        403:
-          $ref: '#/components/responses/NotPermitted'
-        404:
-          $ref: '#/components/responses/NotFound'
   /series:    
     get:
       tags:
@@ -786,7 +639,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Series'
+              type: object
+              properties:
+                description:
+                  type: string
+                  nullable: true
+                recorder_uid:
+                  type: string
+                  nullable: true
       parameters:
         - name: series_uid
           in: path
@@ -830,7 +690,73 @@ paths:
           $ref: '#/components/responses/NotPermitted'
         404:
           $ref: '#/components/responses/NotFound'
-
+  /series/{series_uid}/parameters:    
+    get:
+      tags:
+        - series
+      summary: Get series recording parameters
+      operationId: app.labapp_api.get_series_parameters
+      parameters:
+        - name: series_uid
+          in: path
+          description: UID of series to return
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecordingParameters'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/NotPermitted'
+        404:
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+        - series
+      summary: Update series recording parameters
+      operationId: app.labapp_api.update_series_parameters
+      requestBody:
+        description: Parameters object or parameters uid
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: "#/components/schemas/RecordingParameters"
+                - type: string
+      parameters:
+        - name: series_uid
+          in: path
+          description: UID of series that parameters will be updated
+          required: true
+          schema:
+            type: string
+        - name: parameters_uid
+          in: path
+          description: (Optional) UID of existing parameters set that will be assigned to series
+          schema:
+            type: string
+      responses:
+        200:
+          description: Series parameters upadted successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecordingParameters'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/NotPermitted'
+        404:
+          $ref: '#/components/responses/NotFound'
 components:
 
   responses:
@@ -870,6 +796,8 @@ components:
   schemas:
     Label:
       type: object
+      required:
+        - uid
       properties:
         uid:
           type: string
@@ -880,9 +808,6 @@ components:
           type: string
     Record:
       type: object
-      required:
-        - series_uid
-        - start_time
       properties:
         uid:
           type: string
@@ -936,6 +861,9 @@ components:
           type: number
     Series:
       type: object
+      required:
+        - recorder_uid
+        - parameters
       properties:
         uid:
           type: string
@@ -946,11 +874,10 @@ components:
           type: string
         recorder_uid:
           type: string
-        parameters_uid: 
-          type: string
         parameters:
-          nullable: true
-          $ref: "#/components/schemas/RecordingParameters"
+          oneOf:
+            - $ref: "#/components/schemas/RecordingParameters"
+            - type: string
         is_active:
           type: boolean
     Error:

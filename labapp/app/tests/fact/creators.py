@@ -41,14 +41,10 @@ def create_recording_parameters(count=1, uid=None, samplerate=None,
 
 
 def create_series(count=1, uid=None, description=None, recorder_uid=None,
-                  parameters_uid=None, parameters=None):
-    parameters_uid = parameters_uid or create_recording_parameters()[0]["uid"]
-    if parameters:
-        parameters["uid"] = parameters_uid
+                  parameters=None):
     return [{
         'uid': uid or fake.uuid4(),
         'description': description or fake.sentence(),
         'recorder_uid': recorder_uid or create_recorder()[0]["uid"],
-        'parameters_uid': parameters_uid,
-        'parameters': parameters
+        'parameters': parameters or create_recording_parameters()[0]
     }]

@@ -117,124 +117,15 @@ def test_setting_recorders_current_series(app, client):
     assert response.status_code == 204
 
 
-@pytest.mark.usefixtures('database')
-def test_get_recording_parameters_sets(app, client):
-    models.RecordingParametersFactory.create_batch(5)
-    response = client.get('{base_url}/parameters'.format(base_url=BASE_URL))
-    assert response.status_code == 200
-    data = json.loads(response.data)
-    assert len(data) == 5
-
-
-@pytest.mark.parametrize('attributes,data_len', [
-    ({'created_from': DATESTRINGS['10_days_ago']}, 6),
-    ({'created_to': DATESTRINGS['now']}, 3),
-    ({'created_from': DATESTRINGS['10_days_ago'],
-      'created_to': DATESTRINGS['now']}, 2),
-    ({'samplerate': '22050'}, 6),
-    ({'channels': '1'}, 5),
-    ({'duration': '10.2'}, 2),
-    ({'amplification': '1.5'}, 3)
-])
-@pytest.mark.usefixtures('database')
-def test_get_recording_parameters_sets_filtering(app, client, attributes,
-                                                 data_len):
-    models.RecordingParametersFactory.create_batch(
-        1, created_at=NOW - timedelta(days=30),
-        samplerate=44100, channels=1, duration=10.0, amplification=1.5,
-    )
-    models.RecordingParametersFactory.create_batch(
-        2, created_at=NOW - timedelta(days=10),
-        samplerate=22050, channels=2, duration=10.2, amplification=1.5,
-    )
-    models.RecordingParametersFactory.create_batch(
-        4, created_at=NOW + timedelta(days=2),
-        samplerate=22050, channels=1, duration=7.114, amplification=1.1,
-    )
-    parameters_string = '&'.join([k + '=' + v for k, v in attributes.items()])
-    response = client.get(f"{BASE_URL}/parameters?{parameters_string}")
-    assert response.status_code == 200
-    data = json.loads(response.data)
-    assert len(data) == data_len
-
-
-@pytest.mark.usefixtures('database')
-def test_add_recording_parameters(app, client):
-    new_parameters = creators.create_recording_parameters()[0]
-    response = client.post(
-        f"{BASE_URL}/parameters",
-        data=json.dumps(new_parameters),
-        content_type='application/json'
-    )
-    assert response.status_code == 200
-    data = json.loads(response.data)
-    assert data['samplerate'] == new_parameters['samplerate']
-    assert data['channels'] == new_parameters['channels']
-    assert data['duration'] == new_parameters['duration']
-    assert data['amplification'] == new_parameters['amplification']
-
-    # adding similar parameters set should end with returning existing set
-    # without adding new
-    previously_added_parameters_uid = data.pop('uid')
-    response = client.post(
-        f"{BASE_URL}/parameters",
-        data=json.dumps(new_parameters),
-        content_type='application/json'
-    )
-    assert response.status_code == 200
-    data = json.loads(response.data)
-    assert data['uid'] == previously_added_parameters_uid
-
-    # cannot duplicate uid
-    data['samplerate'] = data['samplerate'] * 2
-    response = client.post(
-        f"{BASE_URL}/parameters",
-        data=json.dumps(data),
-        content_type='application/json'
-    )
-    assert response.status_code == 400
-
-
-@pytest.mark.usefixtures('database')
-def test_get_recording_parameters(app, client):
-    parameters_set = models.RecordingParametersFactory.create(
-        created_at=NOW - timedelta(days=30),
-        samplerate=44100, channels=1, duration=2.0, amplification=1.5,
-    )
-    response = client.get(
-        f"{BASE_URL}/parameters/{parameters_set.uid}")
-    assert response.status_code == 200
-    data = json.loads(response.data)
-    assert data['samplerate'] == 44100
-    assert data['channels'] == 1
-    assert data['duration'] == 2.0
-    assert data['amplification'] == 1.5
-
-
-@pytest.mark.usefixtures('database')
-def test_delete_recording_parameters(app, client):
-    parameters_set = models.RecordingParametersFactory.create(
-        created_at=NOW - timedelta(days=30),
-        samplerate=44100, channels=1, duration=2.0, amplification=1.5,
-    )
-    response = client.delete(f"{BASE_URL}/parameters/{parameters_set.uid}")
-    assert response.status_code == 204
-    sets = RecordingParameters.query.filter_by(uid=parameters_set.uid)
-    assert len(sets.all()) == 0
-    # TODO: assert that it's impossible to delete parameters of existing
-    #       series
-
-
 @pytest.mark.parametrize('attributes,data_len', [
     ({'recorder_uid': "Recorder1"}, 2),
-    ({'parameters_uid': "ParametersSet2"}, 1),
     ({'created_from': DATESTRINGS['10_days_ago']}, 2),
     ({'created_to': DATESTRINGS['now']}, 3),
     ({'created_from': DATESTRINGS['10_days_ago'],
       'created_to': DATESTRINGS['now']}, 1),
     ({'duration': '1'}, 2),
     ({'samplerate': '10000'}, 2),
-    ({'channels': '1,2'}, 3),
+    ({'channels': '1'}, 4),
     ({'amplification': '1'}, 2)
 ])
 @pytest.mark.usefixtures('database')
@@ -245,7 +136,7 @@ def test_getting_serieses(app, client, database, attributes, data_len):
     )
     params_set_2 = models.RecordingParametersFactory.create(
         uid="ParametersSet2",
-        samplerate=22050, channels=2, duration=6.5, amplification=0.9
+        samplerate=22050, channels=1, duration=6.5, amplification=0.9
     )
     recorder_1 = models.RecorderFactory.create(uid="Recorder1")
     recorder_2 = models.RecorderFactory.create(uid="Recorder2")
@@ -257,7 +148,7 @@ def test_getting_serieses(app, client, database, attributes, data_len):
         parameters=params_set_1)
     series_3 = models.SeriesFactory.create(
         created_at=NOW - timedelta(days=10), recorder=recorder_2,
-        parameters=None)
+        parameters=params_set_2)
     series_4 = models.SeriesFactory.create(
         created_at=NOW + timedelta(days=2), recorder=recorder_1,
         parameters=params_set_2)
@@ -276,7 +167,7 @@ def test_add_series_with_existing_parameters(app, client):
     recorder = models.RecorderFactory.create()
     parameters = models.RecordingParametersFactory.create()
     new_series = creators.create_series(recorder_uid=recorder.uid,
-                                        parameters_uid=parameters.uid)[0]
+                                        parameters=parameters.uid)[0]
     response = client.post(
         f"{BASE_URL}/series",
         data=json.dumps(new_series),
@@ -286,13 +177,17 @@ def test_add_series_with_existing_parameters(app, client):
     data = json.loads(response.data)
     assert data['recorder_uid'] == recorder.uid
     assert data['parameters_uid'] == parameters.uid
+    assert data['parameters']['samplerate'] == parameters.samplerate
+    assert data['parameters']['channels'] == parameters.channels
+    assert data['parameters']['duration'] == parameters.duration
+    assert data['parameters']['amplification'] == parameters.amplification
 
 
 @pytest.mark.usefixtures('database')
 def test_add_series_with_uid_of_non_existing_parameters(app, client):
     recorder = models.RecorderFactory.create()
     new_series = creators.create_series(recorder_uid=recorder.uid,
-                                        parameters_uid="RP1")[0]
+                                        parameters="RP1")[0]
     response = client.post(
         f"{BASE_URL}/series",
         data=json.dumps(new_series),
@@ -302,15 +197,17 @@ def test_add_series_with_uid_of_non_existing_parameters(app, client):
     data = json.loads(response.data)
     assert data['recorder_uid'] == recorder.uid
     assert data['parameters_uid'] == "RP1"
-    assert data['parameters']['uid'] == "RP1"
-    assert data['parameters']['samplerate'] == 44100  # default value
+    assert data['parameters']
 
 
 @pytest.mark.usefixtures('database')
-def test_add_series_with_new_parameters_without_given_parameters_uid(
-        app, client):
+def test_add_series_with_parameters_dictionary(app, client):
     recorder = models.RecorderFactory.create()
-    parameters = {'samplerate': 12345}
+    parameters = {
+        'uid': "RP1",
+        'samplerate': 22222,
+        'duration': 13.2
+    }
     new_series = creators.create_series(recorder_uid=recorder.uid,
                                         parameters=parameters)[0]
     response = client.post(
@@ -321,73 +218,30 @@ def test_add_series_with_new_parameters_without_given_parameters_uid(
     assert response.status_code == 200
     data = json.loads(response.data)
     assert data['recorder_uid'] == recorder.uid
-    assert data['parameters']['samplerate'] == 12345
-    assert data['parameters']['channels'] == 1
-
-
-@pytest.mark.usefixtures('database')
-def test_add_series_with_new_parameters_with_given_non_existing_parameters_uid(
-        app, client):
-    recorder = models.RecorderFactory.create()
-    parameters = {'samplerate': 12345}
-    new_series = creators.create_series(recorder_uid=recorder.uid,
-                                        parameters=parameters,
-                                        parameters_uid="RP1")[0]
-    response = client.post(
-        f"{BASE_URL}/series",
-        data=json.dumps(new_series),
-        content_type='application/json'
-    )
-    assert response.status_code == 200
-    data = json.loads(response.data)
-    assert data['recorder_uid'] == recorder.uid
-    assert data['parameters']['samplerate'] == 12345
-    assert data['parameters']['channels'] == 1
     assert data['parameters_uid'] == "RP1"
-    assert data['parameters']['uid'] == "RP1"
+    assert data['parameters']['samplerate'] == 22222
+    assert data['parameters']['channels'] is not None
+    assert data['parameters']['duration'] == 13.2
+    assert data['parameters']['amplification'] is not None
 
 
 @pytest.mark.usefixtures('database')
-def test_add_series_with_new_parameters_with_given_existing_parameters_uid(
-        app, client):
+def test_add_series_with_parameters_dictionary_with_existing_uid(app, client):
     recorder = models.RecorderFactory.create()
     existing_parameters = models.RecordingParametersFactory.create(uid="RP1")
-    parameters = {'samplerate': 12345}
+    parameters = {
+        'uid': "RP1",
+        'samplerate': 22222,
+        'duration': 13.2
+    }
     new_series = creators.create_series(recorder_uid=recorder.uid,
-                                        parameters=parameters,
-                                        parameters_uid="RP1")[0]
+                                        parameters=parameters)[0]
     response = client.post(
         f"{BASE_URL}/series",
         data=json.dumps(new_series),
         content_type='application/json'
     )
     assert response.status_code == 400
-
-
-@pytest.mark.usefixtures('database')
-def test_add_series_with_existing_parameters_with_given_non_parameters_uid(
-        app, client):
-    recorder = models.RecorderFactory.create()
-    existing_parameters = models.RecordingParametersFactory.create(uid="RP1")
-    params = existing_parameters.to_dict()
-    params.pop('created_at')
-    new_series = creators.create_series(
-        recorder_uid=recorder.uid,
-        parameters=params,
-        parameters_uid="RP2"
-    )[0]
-    response = client.post(
-        f"{BASE_URL}/series",
-        data=json.dumps(new_series),
-        content_type='application/json'
-    )
-    assert response.status_code == 200
-    data = json.loads(response.data)
-    assert data['recorder_uid'] == recorder.uid
-    assert data['parameters']['samplerate'] == existing_parameters.samplerate
-    assert data['parameters']['channels'] == existing_parameters.channels
-    assert data['parameters_uid'] == existing_parameters.uid
-    assert data['parameters']['uid'] == existing_parameters.uid
 
 
 @pytest.mark.usefixtures('database')
@@ -410,33 +264,30 @@ def test_get_series(app, client):
 @pytest.mark.usefixtures('database')
 def test_updating_clean_series(app, client, database):
     series = models.SeriesFactory.create()
-    parameters = models.RecordingParametersFactory.create()
+    recorder = models.RecorderFactory()
     response = client.put(
         f"{BASE_URL}/series/{series.uid}",
         data=json.dumps(
-            {'description': 'ASD', 'parameters_uid': parameters.uid}
+            {'description': 'ASD', 'recorder_uid': recorder.uid}
         ),
         content_type='application/json'
     )
     assert response.status_code == 200
     data = json.loads(response.data)
     assert data['uid'] == series.uid
-    assert data['parameters_uid'] == parameters.uid
-    assert data['parameters']['samplerate'] == parameters.samplerate
-    assert data['parameters']['channels'] == parameters.channels
-    assert data['parameters']['duration'] == parameters.duration
-    assert data['parameters']['amplification'] == parameters.amplification
+    assert data['recorder_uid'] == recorder.uid
+    assert data['description'] == 'ASD'
 
 
 @pytest.mark.usefixtures('database')
 def test_updating_non_clean_series(app, client, database):
     series = models.SeriesFactory.create()
-    parameters = models.RecordingParametersFactory.create()
     record = models.RecordFactory.create(series=series)
+    recorder = models.RecorderFactory()
     response = client.put(
         f"{BASE_URL}/series/{series.uid}",
         data=json.dumps(
-            {'description': 'ASD', 'parameters_uid': parameters.uid}
+            {'recorder_uid': recorder.uid}
         ),
         content_type='application/json'
     )
@@ -470,5 +321,77 @@ def test_deleting_currently_maintained_series(app, client, database):
     database.session.commit()
     response = client.delete(
         f"{BASE_URL}/series/{series.uid}",
+    )
+    assert response.status_code == 400
+
+
+@pytest.mark.usefixtures('database')
+def test_getting_series_parameters(app, client):
+    series = models.SeriesFactory.create()
+    response = client.get(
+        f"{BASE_URL}/series/{series.uid}/parameters"
+    )
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['uid'] == series.parameters.uid
+    assert data['samplerate'] == series.parameters.samplerate
+
+
+@pytest.mark.usefixtures('database')
+def test_updating_series_parameters_with_new_parameters(app, client):
+    series = models.SeriesFactory.create()
+    new_parameters = creators.create_recording_parameters()[0]
+    response = client.put(
+        f"{BASE_URL}/series/{series.uid}/parameters",
+        data=json.dumps(new_parameters),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['uid'] == new_parameters['uid']
+    assert data['samplerate'] == new_parameters['samplerate']
+    assert data['channels'] == new_parameters['channels']
+    assert data['duration'] == new_parameters['duration']
+    assert data['amplification'] == new_parameters['amplification']
+
+
+@pytest.mark.usefixtures('database')
+def test_updating_series_parameters_with_uid_of_existing(app, client):
+    series = models.SeriesFactory.create()
+    existing_parameters = models.RecordingParametersFactory.create()
+    response = client.put(
+        f"{BASE_URL}/series/{series.uid}/parameters",
+        data=json.dumps(existing_parameters.uid),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['uid'] == existing_parameters.uid
+    assert data['samplerate'] == existing_parameters.samplerate
+    assert data['channels'] == existing_parameters.channels
+    assert data['duration'] == existing_parameters.duration
+    assert data['amplification'] == existing_parameters.amplification
+
+
+@pytest.mark.usefixtures('database')
+def test_updating_series_parameters_with_uid_of_non_existing(app, client):
+    series = models.SeriesFactory.create()
+    response = client.put(
+        f"{BASE_URL}/series/{series.uid}/parameters",
+        data=json.dumps("non_existing_uid"),
+        content_type='application/json'
+    )
+    assert response.status_code == 404
+
+
+@pytest.mark.usefixtures('database')
+def test_updating_series_parameters_with_dict_containing_existing_uid(app, client):
+    series = models.SeriesFactory.create()
+    existing_parameters = models.RecordingParametersFactory.create()
+    new_parameters = {"uid": existing_parameters.uid, 'samplerate': 23000}
+    response = client.put(
+        f"{BASE_URL}/series/{series.uid}/parameters",
+        data=json.dumps(new_parameters),
+        content_type='application/json'
     )
     assert response.status_code == 400
