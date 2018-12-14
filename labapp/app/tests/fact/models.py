@@ -15,7 +15,6 @@ class RecordFactory(factory.alchemy.SQLAlchemyModelFactory):
     series = factory.SubFactory('app.tests.fact.models.SeriesFactory')
     start_time = fake.date_time_this_year(before_now=True, after_now=False)
     uploaded_at = None
-    filepath = None
     label_uid = choice(['normal', 'anomaly', None])
 
 

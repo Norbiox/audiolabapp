@@ -1,6 +1,9 @@
 import uuid
 from datetime import timedelta
 
+from pathlib import Path
+
+from flask import current_app as app
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import event, orm
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -50,16 +53,23 @@ class Record(db.Model):
     uid = db.Column(db.String(36), unique=True, nullable=False,
                     default=uuid.uuid4)
     created_at = db.Column(db.DateTime, default=db.func.now())
-    start_time = db.Column(db.DateTime)
+    start_time = db.Column(db.DateTime, nullable=False)
     uploaded_at = db.Column(db.DateTime)
-    filepath = db.Column(db.String(200))
 
-    series_uid = db.Column(db.String(36), db.ForeignKey('series.uid'))
+    series_uid = db.Column(db.String(36), db.ForeignKey('series.uid'),
+                           nullable=False)
     series = db.relationship("Series", back_populates="records")
 
     label_uid = db.Column(db.String(36), db.ForeignKey('label.uid'),
                           nullable=True, default=None)
     label = db.relationship("Label", back_populates="records")
+
+    @hybrid_property
+    def filepath(self):
+        filename = str(self.uid) + ".wav"
+        return app.config["UPLOADS_DEFAULT_DEST"] / \
+            str(self.series.uid) / \
+            filename
 
     @hybrid_property
     def stop_time(self):
@@ -69,15 +79,16 @@ class Record(db.Model):
 
     @stop_time.expression
     def stop_time(cls):
-        s = select([db.func.date_add(
+        return select([db.func.date_add(
             cls.start_time,
             text('interval recording_parameters.duration second')
         )]).\
             where(RecordingParameters.uid == Series.parameters_uid).\
             where(Series.uid == cls.series_uid).\
             as_scalar()
-        print(s)
-        return s
+
+    def is_uploaded(self):
+        return self.uploaded_at is not None and self.filepath.exists()
 
     def to_dict(self):
         return {

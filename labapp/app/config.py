@@ -1,6 +1,7 @@
 import os
 
 from dotenv import load_dotenv
+from pathlib import Path
 load_dotenv()
 
 
@@ -13,8 +14,12 @@ class Config:
 
 class ProductionConfig(Config):
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    UPLOADS_DEFAULT_DEST = Path(os.getcwd()) / "media"
+    UPLOADS_DEFAULT_DEST.mkdir(exist_ok=True)
 
 
 class DevelopmentConfig(Config):
     DEBUG = True
     TESTING = True
+    UPLOADS_DEFAULT_DEST = Path("/tmp/media")
+    UPLOADS_DEFAULT_DEST.mkdir(exist_ok=True)

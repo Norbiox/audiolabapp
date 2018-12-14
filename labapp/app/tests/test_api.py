@@ -69,6 +69,57 @@ def test_getting_records(app, client, attributes, data_len):
 
 
 @pytest.mark.parametrize('attributes,data_len', [
+    ({'recorded_from': datetime_to_string(datetime(2018, 11, 15, 12, 0, 13))},
+        2),
+    ({'recorded_to': datetime_to_string(datetime(2018, 11, 15, 12, 0, 48))},
+        3),
+    ({'series_uid': 'Series1'}, 3),
+    ({'label': 'normal'}, 2),
+    ({'labeled': 'true'}, 4),
+    ({'labeled': 'false'}, 1)
+])
+@pytest.mark.usefixtures('database')
+def test_getting_records(app, client, attributes, data_len):
+    parameters1 = models.RecordingParametersFactory.create(duration=50.0)
+    parameters2 = models.RecordingParametersFactory.create(duration=20.0)
+    series1 = models.SeriesFactory.create(
+        uid='Series1', parameters=parameters1
+    )
+    series2 = models.SeriesFactory.create(
+        uid='Series2', parameters=parameters2
+    )
+    models.RecordFactory.create(
+        start_time=NOW - timedelta(days=30), series=series1,
+        uploaded_at=None, label_uid=None
+    )
+    models.RecordFactory.create(
+        start_time=datetime(2018, 11, 12, 0, 0),
+        series=series1, uploaded_at=NOW - timedelta(days=9, hours=23),
+        label_uid='normal'
+    )
+    models.RecordFactory.create(
+        start_time=datetime(2018, 11, 15, 12, 0, 10),
+        series=series1, uploaded_at=NOW - timedelta(days=9, hours=23),
+        label_uid='anomaly'
+    )
+    models.RecordFactory.create(
+        start_time=datetime(2018, 11, 15, 12, 0, 20),
+        series=series2, uploaded_at=NOW - timedelta(days=9, hours=23),
+        label_uid='normal'
+    )
+    models.RecordFactory.create(
+        start_time=datetime(2018, 11, 20, 0, 0, 0),
+        series=series2, uploaded_at=NOW - timedelta(days=1),
+        label_uid='anomaly'
+    )
+    parameters_string = '&'.join([k + '=' + v for k, v in attributes.items()])
+    response = client.get(f"{BASE_URL}/record?{parameters_string}")
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert len(data) == data_len
+
+
+@pytest.mark.parametrize('attributes,data_len', [
     ({'created_from': DATESTRINGS['10_days_ago']}, 2),
     ({'created_to': DATESTRINGS['now']}, 2),
     ({'created_from': DATESTRINGS['10_days_ago'],
