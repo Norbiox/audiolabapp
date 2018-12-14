@@ -8,29 +8,32 @@ from .helpers import (
 from .models import db, Label, Record, Recorder, RecordingParameters, Series
 
 
-def get_records(series_uid=None, parameters_uid=None, recorded_from=None,
-                recorded_to=None, uploaded=None, label=None):
+def get_records(series_uid=None, recorded_from=None, recorded_to=None,
+                uploaded=None, label=None, labeled=None):
     filters = []
     rf, rt = parse_filtering_dates(recorded_from, recorded_to)
-    filters.append(Record.start_time >= rf)
-    filters.append(Record.start_time <= rt)
+    if rf:
+        filters.append(Record.start_time >= rf)
+    if rt:
+        filters.append(Record.stop_time <= rt)
     if series_uid:
         filters.append(
             or_(*[Record.series_uid == uid for uid in series_uid])
         )
-    if parameters_uid:
-        filters.append(
-            or_(*[Record.series.parameters_uid == uid
-                  for uid in parameters_uid])
-        )
-    if uploaded:
-        filters.append(Record.uploaded_at is not None)
-    elif uploaded is not None:
-        filters.append(Record.uploaded_at is None)
+    if uploaded is not None:
+        if uploaded:
+            filters.append(Record.uploaded_at != None)
+        else:
+            filters.append(Record.uploaded_at == None)
     if label:
         filters.append(
             or_(*[Record.label_uid == uid for uid in label])
         )
+    if labeled is not None:
+        if labeled:
+            filters.append(Record.label_uid != None)
+        else:
+            filters.append(Record.label_uid == None)
     records = Record.query.filter(and_(*filters))
     return [r.to_dict() for r in records]
 

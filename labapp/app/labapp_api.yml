@@ -33,13 +33,6 @@ paths:
             type: array
             items:
               type: string
-        - name: parameters_uid
-          in: query
-          description: Return records with specific parameters sets
-          schema:
-            type: array
-            items:
-              type: string
         - name: recorded_from
           in: query
           description: Starting recording datetime for records filtering
@@ -64,6 +57,11 @@ paths:
             type: array
             items:
               type: string
+        - name: labeled
+          in: query
+          description: Return only records that are/aren't labeled
+          schema:
+            type: boolean
       responses:
         200:
           description: successful operation
@@ -808,6 +806,9 @@ components:
           type: string
     Record:
       type: object
+      required:
+        - series_uid
+        - start_time
       properties:
         uid:
           type: string

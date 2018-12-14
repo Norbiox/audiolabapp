@@ -2,9 +2,11 @@ import uuid
 from datetime import timedelta
 
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import event, orm
+from sqlalchemy import event, orm, Interval
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import validates
+from sqlalchemy.sql import select
+from sqlalchemy.sql.expression import bindparam, text
 
 from .helpers import get_object
 
@@ -60,12 +62,22 @@ class Record(db.Model):
     label = db.relationship("Label", back_populates="records")
 
     @hybrid_property
-    def parameters(self):
-        return self.series.parameters
-
-    @hybrid_property
     def stop_time(self):
-        return self.start_time + timedelta(seconds=self.parameters.duration)
+        return self.start_time + timedelta(
+            seconds=self.series.parameters.duration
+        )
+
+    @stop_time.expression
+    def stop_time(cls):
+        s = select([db.func.date_add(
+            cls.start_time,
+            text('interval recording_parameters.duration second')
+        )]).\
+            where(RecordingParameters.uid == Series.parameters_uid).\
+            where(Series.uid == cls.series_uid).\
+            as_scalar()
+        print(s)
+        return s
 
     def to_dict(self):
         return {
