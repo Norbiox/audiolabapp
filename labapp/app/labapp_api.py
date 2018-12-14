@@ -22,9 +22,9 @@ def get_records(series_uid=None, recorded_from=None, recorded_to=None,
         )
     if uploaded is not None:
         if uploaded:
-            filters.append(Record.uploaded_at != None)
+            filters.append(Record.uploaded_at is not None)
         else:
-            filters.append(Record.uploaded_at == None)
+            filters.append(Record.uploaded_at is None)
     if label:
         filters.append(
             or_(*[Record.label_uid == uid for uid in label])
@@ -127,8 +127,7 @@ def new_recorder():
 
 
 def get_recorder(recorder_uid):
-    recorder = get_object_or_404(Recorder, recorder_uid)
-    return recorder.to_dict()
+    return get_object_or_404(Recorder, recorder_uid).to_dict()
 
 
 def update_recorder(recorder_uid):
@@ -252,8 +251,7 @@ def new_series():
 
 
 def get_series(series_uid):
-    series = get_object_or_404(Series, series_uid)
-    return series.to_dict()
+    return get_object_or_404(Series, series_uid).to_dict()
 
 
 def update_series(series_uid):
@@ -312,4 +310,3 @@ def update_series_parameters(series_uid):
         flask.abort(400, str(ex))
     except ValueError as ex:
         flask.abort(400, str(ex))
-

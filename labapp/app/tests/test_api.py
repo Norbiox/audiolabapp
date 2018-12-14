@@ -4,8 +4,7 @@ from datetime import datetime, timedelta
 import pytest
 
 from app.helpers import datetime_to_string
-from app.models import Label, Record, Recorder, RecordingParameters, Series
-from app.tests.fact import fake, models, creators
+from app.tests.fact import models, creators
 
 
 BASE_URL = '1.0/lab'
@@ -38,26 +37,26 @@ def test_getting_records(app, client, attributes, data_len):
     series2 = models.SeriesFactory.create(
         uid='Series2', parameters=parameters2
     )
-    record1 = models.RecordFactory.create(
+    models.RecordFactory.create(
         start_time=NOW - timedelta(days=30), series=series1,
         uploaded_at=None, label_uid=None
     )
-    record2 = models.RecordFactory.create(
+    models.RecordFactory.create(
         start_time=datetime(2018, 11, 12, 0, 0),
         series=series1, uploaded_at=NOW - timedelta(days=9, hours=23),
         label_uid='normal'
     )
-    record3 = models.RecordFactory.create(
+    models.RecordFactory.create(
         start_time=datetime(2018, 11, 15, 12, 0, 10),
         series=series1, uploaded_at=NOW - timedelta(days=9, hours=23),
         label_uid='anomaly'
     )
-    record4 = models.RecordFactory.create(
+    models.RecordFactory.create(
         start_time=datetime(2018, 11, 15, 12, 0, 20),
         series=series2, uploaded_at=NOW - timedelta(days=9, hours=23),
         label_uid='normal'
     )
-    record5 = models.RecordFactory.create(
+    models.RecordFactory.create(
         start_time=datetime(2018, 11, 20, 0, 0, 0),
         series=series2, uploaded_at=NOW - timedelta(days=1),
         label_uid='anomaly'
@@ -67,7 +66,6 @@ def test_getting_records(app, client, attributes, data_len):
     assert response.status_code == 200
     data = json.loads(response.data)
     assert len(data) == data_len
-
 
 
 @pytest.mark.parametrize('attributes,data_len', [
@@ -81,15 +79,15 @@ def test_getting_records(app, client, attributes, data_len):
 @pytest.mark.usefixtures('database')
 def test_getting_recorders(app, client, database, attributes, data_len):
     helper_series = models.SeriesFactory()
-    helper_series2 = models.SeriesFactory(recorder=helper_series.recorder)
+    models.SeriesFactory(recorder=helper_series.recorder)
     recorder1 = helper_series.recorder
     recorder1.current_series_uid = helper_series.uid
     recorder1.created_at = datetime.now() - timedelta(days=30)
     database.session.commit()
-    recorder2 = models.RecorderFactory.create(
+    models.RecorderFactory.create(
         created_at=NOW - timedelta(days=10),
     )
-    recorder3 = models.RecorderFactory.create(
+    models.RecorderFactory.create(
         created_at=NOW + timedelta(days=2)
     )
     parameters_string = '&'.join([k + '=' + v for k, v in attributes.items()])
@@ -195,13 +193,13 @@ def test_getting_serieses(app, client, database, attributes, data_len):
     series_1 = models.SeriesFactory.create(
         created_at=NOW - timedelta(days=30), recorder=recorder_1,
         parameters=params_set_1)
-    series_2 = models.SeriesFactory.create(
+    models.SeriesFactory.create(
         created_at=NOW - timedelta(days=11), recorder=recorder_2,
         parameters=params_set_1)
-    series_3 = models.SeriesFactory.create(
+    models.SeriesFactory.create(
         created_at=NOW - timedelta(days=10), recorder=recorder_2,
         parameters=params_set_2)
-    series_4 = models.SeriesFactory.create(
+    models.SeriesFactory.create(
         created_at=NOW + timedelta(days=2), recorder=recorder_1,
         parameters=params_set_2)
     recorder_1.current_series_uid = series_1.uid
@@ -280,7 +278,7 @@ def test_add_series_with_parameters_dictionary(app, client):
 @pytest.mark.usefixtures('database')
 def test_add_series_with_parameters_dictionary_with_existing_uid(app, client):
     recorder = models.RecorderFactory.create()
-    existing_parameters = models.RecordingParametersFactory.create(uid="RP1")
+    models.RecordingParametersFactory.create(uid="RP1")
     parameters = {
         'uid': "RP1",
         'samplerate': 22222,
@@ -334,7 +332,7 @@ def test_updating_clean_series(app, client, database):
 @pytest.mark.usefixtures('database')
 def test_updating_non_clean_series(app, client, database):
     series = models.SeriesFactory.create()
-    record = models.RecordFactory.create(series=series)
+    models.RecordFactory.create(series=series)
     recorder = models.RecorderFactory()
     response = client.put(
         f"{BASE_URL}/series/{series.uid}",
@@ -358,7 +356,7 @@ def test_deleting_clean_series(app, client, database):
 @pytest.mark.usefixtures('database')
 def test_deleting_non_clean_series(app, client, database):
     series = models.SeriesFactory.create()
-    record = models.RecordFactory.create(series=series)
+    models.RecordFactory.create(series=series)
     response = client.delete(
         f"{BASE_URL}/series/{series.uid}",
     )
@@ -437,7 +435,7 @@ def test_updating_series_parameters_with_uid_of_non_existing(app, client):
 
 
 @pytest.mark.usefixtures('database')
-def test_updating_series_parameters_with_dict_containing_existing_uid(app, client):
+def test_upd_series_parameters_with_dict_containing_existing_uid(app, client):
     series = models.SeriesFactory.create()
     existing_parameters = models.RecordingParametersFactory.create()
     new_parameters = {"uid": existing_parameters.uid, 'samplerate': 23000}

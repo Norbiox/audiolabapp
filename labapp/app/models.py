@@ -2,11 +2,11 @@ import uuid
 from datetime import timedelta
 
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import event, orm, Interval
+from sqlalchemy import event, orm
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import validates
 from sqlalchemy.sql import select
-from sqlalchemy.sql.expression import bindparam, text
+from sqlalchemy.sql.expression import text
 
 from .helpers import get_object
 
@@ -218,5 +218,6 @@ class Series(db.Model):
             'recorder_uid': self.recorder.uid,
             'description': self.description,
             'parameters_uid': self.parameters_uid,
-            'parameters': self.parameters.to_dict() if self.parameters else None
+            'parameters': self.parameters.to_dict()
+            if self.parameters else None
         }

@@ -3,6 +3,7 @@ from datetime import datetime
 
 from app.helpers import increase_last_digit, parse_filtering_dates
 
+
 def test_parsing_dates_to_filtering():
     created_from = '2018-04-21'
     created_to = '2018-11-09'
