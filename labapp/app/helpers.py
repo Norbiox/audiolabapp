@@ -1,7 +1,8 @@
+import jwt
 from datetime import datetime
 from dateutil.parser import parse
 
-from flask import abort
+from flask import abort, current_app
 from sqlalchemy.orm import exc
 
 DATE_FORMAT = '%Y-%m-%d'
@@ -13,6 +14,13 @@ def datetime_to_string(dt, date_format=False):
     if not date_format:
         return dt.strftime(DATETIME_FORMAT)
     return dt.strftime(DATE_FORMAT)
+
+
+def encode_recorder_key(recorder_uid):
+    payload = {'uid': recorder_uid}
+    key = jwt.encode(payload, current_app.config['SECRET_KEY'],
+                     algorithm='HS256')
+    return key
 
 
 def get_object(model, key):

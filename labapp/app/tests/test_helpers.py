@@ -1,7 +1,8 @@
 import pytest
 from datetime import datetime
 
-from app.helpers import increase_last_digit, parse_filtering_dates
+from app.helpers import (encode_recorder_key, increase_last_digit,
+                         parse_filtering_dates)
 
 
 def test_parsing_dates_to_filtering():
@@ -33,3 +34,8 @@ def test_parsing_dates_to_filtering():
 ])
 def test_increasing_last_digits_of_number(number, result):
     assert increase_last_digit(number) == result
+
+
+def test_encoding_recorder_key():
+    key = encode_recorder_key('recorder123')
+    assert isinstance(key, bytes)
