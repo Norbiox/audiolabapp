@@ -38,4 +38,4 @@ def test_increasing_last_digits_of_number(number, result):
 
 def test_encoding_recorder_key():
     key = encode_recorder_key('recorder123')
-    assert isinstance(key, bytes)
+    assert isinstance(key, str)

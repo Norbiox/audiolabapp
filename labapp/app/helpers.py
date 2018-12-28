@@ -20,7 +20,7 @@ def encode_recorder_key(recorder_uid):
     payload = {'uid': recorder_uid}
     key = jwt.encode(payload, current_app.config['SECRET_KEY'],
                      algorithm='HS256')
-    return key
+    return key.decode("utf-8")
 
 
 def get_object(model, key):
