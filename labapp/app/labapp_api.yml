@@ -822,11 +822,9 @@ components:
           type: string
           nullable: true
         start_time:
-          type: string
-          format: date-time
+          type: number
         stop_time:
-          type: string
-          format: date-time
+          type: number
         uploaded_at:
           type: string
           format: date-time
