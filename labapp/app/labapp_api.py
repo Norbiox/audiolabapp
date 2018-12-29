@@ -3,7 +3,8 @@ from connexion import request
 from sqlalchemy import and_, exc, orm, or_
 
 from .helpers import (
-    get_object, get_object_or_404, increase_last_digit, parse_filtering_dates
+    datetime_to_time, get_object, get_object_or_404, increase_last_digit,
+    parse_filtering_dates, time_to_datetime
 )
 from .models import db, Label, Record, Recorder, RecordingParameters, Series
 
@@ -11,7 +12,7 @@ from .models import db, Label, Record, Recorder, RecordingParameters, Series
 def get_records(series_uid=None, recorded_from=None, recorded_to=None,
                 uploaded=None, label=None, labeled=None):
     filters = []
-    rf, rt = parse_filtering_dates(recorded_from, recorded_to)
+    rf, rt = parse_filtering_dates(recorded_from, recorded_to, True)
     if rf:
         filters.append(Record.start_time >= rf)
     if rt:

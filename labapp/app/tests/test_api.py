@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from app.helpers import datetime_to_string
+from app.helpers import datetime_to_string, datetime_to_time
 from app.tests.fact import models, creators
 
 
@@ -38,26 +38,26 @@ def test_getting_records(app, client, attributes, data_len):
         uid='Series2', parameters=parameters2
     )
     models.RecordFactory.create(
-        start_time=datetime(2018, 10, 12, 0, 0), series=series1,
-        uploaded_at=None, label_uid=None
+        start_time=datetime_to_time(datetime(2018, 10, 12, 0, 0)),
+        series=series1, uploaded_at=None, label_uid=None
     )
     models.RecordFactory.create(
-        start_time=datetime(2018, 11, 12, 0, 0),
+        start_time=datetime_to_time(datetime(2018, 11, 12, 0, 0)),
         series=series1, uploaded_at=NOW - timedelta(days=9, hours=23),
         label_uid='normal'
     )
     models.RecordFactory.create(
-        start_time=datetime(2018, 11, 15, 12, 0, 10),
+        start_time=datetime_to_time(datetime(2018, 11, 15, 12, 0, 10)),
         series=series1, uploaded_at=NOW - timedelta(days=9, hours=23),
         label_uid='anomaly'
     )
     models.RecordFactory.create(
-        start_time=datetime(2018, 11, 15, 12, 0, 20),
+        start_time=datetime_to_time(datetime(2018, 11, 15, 12, 0, 20)),
         series=series2, uploaded_at=NOW - timedelta(days=9, hours=23),
         label_uid='normal'
     )
     models.RecordFactory.create(
-        start_time=datetime(2018, 11, 20, 0, 0, 0),
+        start_time=datetime_to_time(datetime(2018, 11, 20, 0, 0, 0)),
         series=series2, uploaded_at=NOW - timedelta(days=1),
         label_uid='anomaly'
     )
