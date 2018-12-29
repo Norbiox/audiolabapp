@@ -144,5 +144,4 @@ def test_record(database):
     record.filepath.unlink()
     record.uploaded_at = None
     database.session.commit()
-
-    
+    assert not record.is_uploaded()
