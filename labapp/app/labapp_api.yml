@@ -87,6 +87,13 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/Record'
+      parameters:
+        - name: recorder_key
+          in: header
+          description: Unique recorder key for recorder authentication
+          required: true
+          schema:
+            type: string
       responses:
         200:
           description: Record added successfuly.
@@ -282,7 +289,7 @@ paths:
           schema:
             type: string
         - name: recorder_key
-          in: query
+          in: header
           description: Unique recorder key for recorder authentication
           required: true
           schema:

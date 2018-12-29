@@ -1,5 +1,6 @@
 import json
 from datetime import datetime, timedelta
+from io import BytesIO
 
 import pytest
 
@@ -114,7 +115,7 @@ def test_registering_record_by_non_existing_recorder(app, client):
         data=json.dumps(record_data),
         content_type='application/json'
     )
-    assert response.status_code == 401
+    assert response.status_code == 400
     response = client.post(
         f"{BASE_URL}/record",
         data=json.dumps(record_data),
@@ -132,6 +133,102 @@ def test_deleting_record(app, client):
     response = client.delete(f"{BASE_URL}/record/{record.uid}")
     assert response.status_code == 204
     assert not record.filepath.exists()
+
+
+@pytest.mark.usefixtures('database')
+def test_getting_record_label(app, client):
+    record = models.RecordFactory.create(label_uid='normal')
+    response = client.get(f"{BASE_URL}/record/{record.uid}/label")
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data["uid"] == 'normal'
+    assert data["created_at"] is not None
+    # no label
+    record = models.RecordFactory.create(label_uid=None)
+    response = client.get(f"{BASE_URL}/record/{record.uid}/label")
+    assert response.status_code == 200
+    assert json.loads(response.data) == {}
+
+
+@pytest.mark.usefixtures('database')
+def test_setting_record_label(app, client):
+    record = models.RecordFactory.create(label_uid=None)
+    response = client.put(f"{BASE_URL}/record/{record.uid}/label",
+                          data=json.dumps({'label_uid': 'normal'}),
+                          content_type='application/json')
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['uid'] == record.uid
+    assert data['label_uid'] == 'normal'
+    response = client.put(f"{BASE_URL}/record/{record.uid}/label",
+                          data=json.dumps({'label_uid': None}),
+                          content_type='application/json')
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['uid'] == record.uid
+    assert data['label_uid'] is None
+
+    # setting label that does not exist
+    response = client.put(f"{BASE_URL}/record/{record.uid}/label",
+                          data=json.dumps({'label_uid': 'non_existing_label'}),
+                          content_type='application/json')
+    assert response.status_code == 404
+
+
+@pytest.mark.usefixtures('database')
+def test_uploading_file(app, client):
+    recorder = models.RecorderFactory.create()
+    series = models.SeriesFactory.create(recorder=recorder)
+    record = models.RecordFactory.create(series=series)
+    response = client.post(
+        f"{BASE_URL}/record/{record.uid}/upload",
+        data={'file': (BytesIO(b'content_of_file'), 'filename.wav')},
+        content_type='multipart/form-data',
+        headers={'recorder_key': encode_recorder_key(recorder.uid)}
+    )
+    assert response.status_code == 200
+
+
+@pytest.mark.usefixtures('database')
+def test_uploading_file_with_wrong_extension(app, client):
+    recorder = models.RecorderFactory.create()
+    series = models.SeriesFactory.create(recorder=recorder)
+    record = models.RecordFactory.create(series=series)
+    response = client.post(
+        f"{BASE_URL}/record/{record.uid}/upload",
+        data={'file': (BytesIO(b'content_of_file'), 'filename.png')},
+        content_type='multipart/form-data',
+        headers={'recorder_key': encode_recorder_key(recorder.uid)}
+    )
+    assert response.status_code == 400
+
+
+@pytest.mark.usefixtures('database')
+def test_downloading_files(app, client):
+    recorder = models.RecorderFactory.create()
+    series = models.SeriesFactory.create(recorder=recorder)
+    record = models.RecordFactory.create(
+        series=series, uploaded_at=datetime.now()
+    )
+    record.filepath.touch()
+    with open(record.filepath, 'w+') as f:
+        f.write("content_of_file")
+    response = client.get(f"{BASE_URL}/record/{record.uid}/download")
+    assert response.status_code == 200
+    assert response.data == b"content_of_file"
+
+
+
+@pytest.mark.usefixtures('database')
+def test_getting_record_parameters(app, client):
+    parameters = models.RecordingParametersFactory.create()
+    series = models.SeriesFactory.create(parameters=parameters)
+    record = models.RecordFactory.create(series=series)
+    response = client.get(f"{BASE_URL}/record/{record.uid}/parameters")
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data["uid"] == parameters.uid
+    assert data["duration"] == parameters.duration
 
 
 @pytest.mark.parametrize('attributes,data_len', [

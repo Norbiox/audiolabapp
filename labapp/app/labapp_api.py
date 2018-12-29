@@ -85,7 +85,7 @@ def get_records_label(record_uid):
 def update_records_label(record_uid):
     record = get_object_or_404(Record, record_uid)
     data = request.get_json()
-    label_uid = data.put('label_uid')
+    label_uid = data.pop('label_uid')
     if label_uid is not None:
         get_object_or_404(Label, label_uid)
     record.label_uid = label_uid
@@ -100,11 +100,35 @@ def get_record_parameters(record_uid):
 
 
 def download_record(record_uid):
-    return []
+    record = get_object_or_404(Record, record_uid)
+    if not record.is_uploaded():
+        flask.abort(
+            404, "This record is registered but file has not been uploaded yet"
+        )
+    return flask.send_file(str(record.filepath),
+                           attachment_filename=record.filepath.name)
 
 
-def upload_record(record_uid, recorder_key):
-    return {}
+@recorder_required
+def upload_record(record_uid):
+    record = get_object_or_404(Record, record_uid)
+    recorder = flask.g.recorder
+    if record.series_uid not in [s.uid for s in recorder.serieses]:
+        flask.abort(403, "Recorder {} does not maintain series {}".format(
+            recorder.uid, record.series_uid
+        ))
+    try:
+        file = request.files['file']
+        if file.filename.split('.')[-1] != 'wav':
+            raise TypeError("Attached file has wrong format")
+    except KeyError:
+        flask.abort(400, "No file has been attached to request")
+    except TypeError as ex:
+        flask.abort(400, str(ex))
+    if record.filepath.exists():
+        record.filepath.unlink()
+    file.save(str(record.filepath))
+    return record.to_dict()
 
 
 def get_recorders(series_uid=None, created_from=None, created_to=None,
