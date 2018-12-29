@@ -1,5 +1,5 @@
 import random
-from datetime import datetime, timedelta
+from time import time
 
 from ..fact import fake
 
@@ -13,7 +13,7 @@ def create_record(count=1, uid=None, series_uid=None, current_series_uid=None,
         "uid": uid or fake.uuid4(),
         "series_uid": series_uid or series["uid"],
         "current_series_uid": current_series_uid or series["uid"],
-        "start_time": start_time or datetime - timedelta(minutes=5),
+        "start_time": start_time or time() - 300,
         "uploaded_at": uploaded_at,
         "filepath": filepath,
         "label_uid": label or fake.word(['normal', 'anomaly'])

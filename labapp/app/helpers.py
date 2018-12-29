@@ -18,7 +18,8 @@ def datetime_to_string(dt, date_format=False):
 
 
 def datetime_to_time(dt):
-    return time.mktime(dt.timetuple()) + dt.microsecond / 1E6
+    if dt is not None:
+        return time.mktime(dt.timetuple()) + dt.microsecond / 1E6
 
 
 def encode_recorder_key(recorder_uid):
@@ -64,7 +65,8 @@ def increase_last_digit(number):
     return int(string)
 
 
-def parse_filtering_dates(created_from=None, created_to=None):
+def parse_filtering_dates(created_from=None, created_to=None,
+                          timestamped=False):
     try:
         if created_from:
             created_from = parse(created_from)
@@ -81,6 +83,8 @@ def parse_filtering_dates(created_from=None, created_to=None):
                 )
     except ValueError:
         raise ValueError('Invalid datetime format')
+    if timestamped:
+        return datetime_to_time(created_from), datetime_to_time(created_to)
     return created_from, created_to
 
 

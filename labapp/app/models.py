@@ -74,7 +74,7 @@ class Record(db.Model):
 
     @stop_time.expression
     def stop_time(cls):
-        return select(cls.start_time + RecordingParameters.duration).\
+        return select([cls.start_time + RecordingParameters.duration]).\
             where(RecordingParameters.uid == Series.parameters_uid).\
             where(Series.uid == cls.series_uid).\
             as_scalar()

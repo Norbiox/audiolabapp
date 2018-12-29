@@ -2,6 +2,7 @@ import factory
 from random import choice
 
 from ..fact import fake
+from app.helpers import datetime_to_time
 from app.models import db, Record, Recorder, RecordingParameters, Series
 
 
@@ -13,7 +14,9 @@ class RecordFactory(factory.alchemy.SQLAlchemyModelFactory):
 
     created_at = fake.date_time_this_year(before_now=True, after_now=False)
     series = factory.SubFactory('app.tests.fact.models.SeriesFactory')
-    start_time = fake.date_time_this_year(before_now=True, after_now=False)
+    start_time = datetime_to_time(
+        fake.date_time_this_year(before_now=True, after_now=False)
+    )
     uploaded_at = None
     label_uid = choice(['normal', 'anomaly', None])
 
