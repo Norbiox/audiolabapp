@@ -223,3 +223,10 @@ class Series(db.Model):
             'parameters': self.parameters.to_dict()
             if self.parameters else None
         }
+
+
+@event.listens_for(Series, 'after_insert')
+def create_series_folder(mapper, connection, target):
+    series_uid = target.uid
+    p = app.config["UPLOADS_DEFAULT_DEST"] / str(series_uid)
+    p.mkdir(exist_ok=True)

@@ -2,11 +2,12 @@ import flask
 from connexion import request
 from sqlalchemy import and_, exc, orm, or_
 
-from .helpers import (
+from app.decorators import recorder_required
+from app.helpers import (
     datetime_to_time, get_object, get_object_or_404, increase_last_digit,
     parse_filtering_dates, time_to_datetime
 )
-from .models import db, Label, Record, Recorder, RecordingParameters, Series
+from app.models import db, Label, Record, Recorder, RecordingParameters, Series
 
 
 def get_records(series_uid=None, recorded_from=None, recorded_to=None,
@@ -39,8 +40,26 @@ def get_records(series_uid=None, recorded_from=None, recorded_to=None,
     return [r.to_dict() for r in records]
 
 
+@recorder_required
 def new_record():
-    return {}
+    record_data = request.get_json()
+    recorder = flask.g.recorder
+    if record_data["series_uid"] not in [s.uid for s in recorder.serieses]:
+        flask.abort(403, "Recorder {} does not maintain series {}".format(
+            recorder.uid, record_data["series_uid"]
+        ))
+    if record_data["label_uid"] is not None:
+        get_object_or_404(Label, record_data["label_uid"])
+    try:
+        record = Record(**record_data)
+        db.session.add(record)
+        db.session.commit()
+        return record.to_dict()
+    except exc.IntegrityError as ex:
+        db.session.rollback()
+        flask.abort(400, str(ex))
+    except ValueError as ex:
+        flask.abort(400, str(ex))
 
 
 def get_record(record_uid):
@@ -49,6 +68,8 @@ def get_record(record_uid):
 
 def delete_record(record_uid):
     record = get_object_or_404(Record, record_uid)
+    if record.filepath.exists():
+        record.filepath.unlink()
     db.session.delete(record)
     return ('Record deleted', 204)
 

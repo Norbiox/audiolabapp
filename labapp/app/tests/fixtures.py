@@ -1,4 +1,5 @@
 import pytest
+import shutil
 
 from app import create_app
 from app.models import db
@@ -20,6 +21,8 @@ def database(app):
     yield db
     db.session.close()
     db.drop_all()
+    for i in app.config['UPLOADS_DEFAULT_DEST'].iterdir():
+        shutil.rmtree(i)
 
 
 @pytest.yield_fixture(scope='session')

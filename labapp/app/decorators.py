@@ -11,8 +11,11 @@ from .models import Recorder
 def recorder_required(func):
     @wraps(func)
     def inner(*args, **kwargs):
-        token = flask.request.headers.get('recorder_key')
         try:
+            token = flask.request.headers.get('recorder_key')
+            assert token is not None
+            if isinstance(token, str):
+                token = token.encode("utf-8")
             payload = jwt.decode(token, flask.current_app.config['SECRET_KEY'],
                                  algorithms=['HS256'])
             uid = payload.pop('uid')
@@ -21,6 +24,6 @@ def recorder_required(func):
             return func(*args, **kwargs)
         except (jwt.exceptions.InvalidSignatureError, KeyError) as ex:
             flask.abort(401)
-        except exc.NoResultFound as ex:
+        except (exc.NoResultFound, AssertionError) as ex:
             flask.abort(401)
     return inner

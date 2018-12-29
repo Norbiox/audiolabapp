@@ -7,16 +7,12 @@ from ..fact import fake
 def create_record(count=1, uid=None, series_uid=None, current_series_uid=None,
                   start_time=None, uploaded_at=None, filepath=None,
                   label=None):
-    if series_uid in None:
-        series = create_series()["uid"]
     return [{
         "uid": uid or fake.uuid4(),
-        "series_uid": series_uid or series["uid"],
-        "current_series_uid": current_series_uid or series["uid"],
+        "series_uid": series_uid or create_series()["uid"],
         "start_time": start_time or time() - 300,
         "uploaded_at": uploaded_at,
-        "filepath": filepath,
-        "label_uid": label or fake.word(['normal', 'anomaly'])
+        "label_uid": label
     } for _ in range(count)]
 
 

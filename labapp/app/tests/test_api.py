@@ -3,7 +3,8 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from app.helpers import datetime_to_string, datetime_to_time
+from app.helpers import (datetime_to_string, datetime_to_time,
+                         encode_recorder_key)
 from app.tests.fact import models, creators
 
 
@@ -66,6 +67,71 @@ def test_getting_records(app, client, attributes, data_len):
     assert response.status_code == 200
     data = json.loads(response.data)
     assert len(data) == data_len
+
+
+@pytest.mark.parametrize('label', [None, 'normal'])
+@pytest.mark.usefixtures('database')
+def test_registering_record(app, client, label):
+    recorder = models.RecorderFactory.create()
+    series = models.SeriesFactory.create(recorder=recorder)
+    record_data = creators.create_record(series_uid=series.uid, label=label)[0]
+    response = client.post(
+        f"{BASE_URL}/record",
+        data=json.dumps(record_data),
+        content_type='application/json',
+        headers={'recorder_key': encode_recorder_key(recorder.uid)}
+    )
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data["uid"] is not None
+    assert data["created_at"] is not None
+    assert data["label_uid"] == label
+    assert data["series_uid"] == series.uid
+
+
+@pytest.mark.usefixtures('database')
+def test_registering_record_by_wrong_recorder(app, client):
+    recorder1 = models.RecorderFactory.create()
+    recorder2 = models.RecorderFactory.create()
+    series = models.SeriesFactory.create(recorder=recorder1)
+    record_data = creators.create_record(series_uid=series.uid)[0]
+    response = client.post(
+        f"{BASE_URL}/record",
+        data=json.dumps(record_data),
+        content_type='application/json',
+        headers={'recorder_key': encode_recorder_key(recorder2.uid)}
+    )
+    assert response.status_code == 403
+
+
+@pytest.mark.usefixtures('database')
+def test_registering_record_by_non_existing_recorder(app, client):
+    recorder = models.RecorderFactory.create()
+    series = models.SeriesFactory.create(recorder=recorder)
+    record_data = creators.create_record(series_uid=series.uid)[0]
+    response = client.post(
+        f"{BASE_URL}/record",
+        data=json.dumps(record_data),
+        content_type='application/json'
+    )
+    assert response.status_code == 401
+    response = client.post(
+        f"{BASE_URL}/record",
+        data=json.dumps(record_data),
+        content_type='application/json',
+        headers={'recorder_key': encode_recorder_key("non_existing_recorder")}
+    )
+    assert response.status_code == 401
+
+
+@pytest.mark.usefixtures('database')
+def test_deleting_record(app, client):
+    record = models.RecordFactory.create()
+    record.filepath.touch()
+    assert record.filepath.exists()
+    response = client.delete(f"{BASE_URL}/record/{record.uid}")
+    assert response.status_code == 204
+    assert not record.filepath.exists()
 
 
 @pytest.mark.parametrize('attributes,data_len', [
