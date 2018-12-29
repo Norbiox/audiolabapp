@@ -1,4 +1,5 @@
 import jwt
+import time
 from datetime import datetime
 from dateutil.parser import parse
 
@@ -14,6 +15,10 @@ def datetime_to_string(dt, date_format=False):
     if not date_format:
         return dt.strftime(DATETIME_FORMAT)
     return dt.strftime(DATE_FORMAT)
+
+
+def datetime_to_time(dt):
+    return time.mktime(dt.timetuple()) + dt.microsecond / 1E6
 
 
 def encode_recorder_key(recorder_uid):
@@ -86,3 +91,7 @@ def string_to_datetime(date_string):
         except ValueError:
             pass
     raise ValueError('Invalid datetime format')
+
+
+def time_to_datetime(timestamp):
+    return datetime.fromtimestamp(timestamp)

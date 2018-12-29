@@ -1,7 +1,4 @@
 import uuid
-from datetime import timedelta
-
-from pathlib import Path
 
 from flask import current_app as app
 from flask_sqlalchemy import SQLAlchemy
@@ -9,7 +6,6 @@ from sqlalchemy import event, orm
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import validates
 from sqlalchemy.sql import select
-from sqlalchemy.sql.expression import text
 
 from .helpers import get_object
 
@@ -20,7 +16,7 @@ class Label(db.Model):
     __tablename__ = 'label'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     uid = db.Column(
-        db.String(10), nullable=False, unique=True, default=uuid.uuid4
+        db.String(36), nullable=False, unique=True, default=uuid.uuid4
     )
     created_at = db.Column(db.DateTime, default=db.func.now())
     description = db.Column(db.String(100), default="")
@@ -53,7 +49,8 @@ class Record(db.Model):
     uid = db.Column(db.String(36), unique=True, nullable=False,
                     default=uuid.uuid4)
     created_at = db.Column(db.DateTime, default=db.func.now())
-    start_time = db.Column(db.DateTime, nullable=False)
+    start_time = db.Column(db.Numeric(precision=17, scale=7, asdecimal=False),
+                           nullable=False)
     uploaded_at = db.Column(db.DateTime)
 
     series_uid = db.Column(db.String(36), db.ForeignKey('series.uid'),
@@ -73,16 +70,11 @@ class Record(db.Model):
 
     @hybrid_property
     def stop_time(self):
-        return self.start_time + timedelta(
-            seconds=self.series.parameters.duration
-        )
+        return self.start_time + self.series.parameters.duration
 
     @stop_time.expression
     def stop_time(cls):
-        return select([db.func.date_add(
-            cls.start_time,
-            text('interval recording_parameters.duration second')
-        )]).\
+        return select(cls.start_time + RecordingParameters.duration).\
             where(RecordingParameters.uid == Series.parameters_uid).\
             where(Series.uid == cls.series_uid).\
             as_scalar()
@@ -128,16 +120,15 @@ class Recorder(db.Model):
 
     @validates('current_series_uid')
     def validate_current_series_uid(self, key, current_series_uid):
-        try:
+        if current_series_uid is not None:
             series = get_object(Series, current_series_uid)
             if series.recorder_uid != self.uid:
                 raise ValueError(
                     "Series with uid {} is not maintaned by recorder {}".
                     format(series.uid, self.uid)
                 )
-        except orm.exc.NoResultFound:
-            return None
-        return series.uid
+            return series.uid
+        return None
 
     def to_dict(self):
         return {
@@ -157,7 +148,7 @@ class RecordingParameters(db.Model):
     created_at = db.Column(db.DateTime, default=db.func.now())
     samplerate = db.Column(db.Integer, default=44100)
     channels = db.Column(db.Integer, default=1)
-    duration = db.Column(db.Numeric(precision=10, scale=7, asdecimal=False),
+    duration = db.Column(db.Numeric(precision=13, scale=7, asdecimal=False),
                          default=5.0)
     amplification = db.Column(
         db.Numeric(precision=10, scale=7, asdecimal=False),
