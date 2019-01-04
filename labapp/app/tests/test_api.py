@@ -580,7 +580,7 @@ def test_updating_series_parameters_with_uid_of_existing(app, client):
     existing_parameters = models.RecordingParametersFactory.create()
     response = client.put(
         f"{BASE_URL}/series/{series.uid}/parameters",
-        data=json.dumps(existing_parameters.uid),
+        data=json.dumps({'uid': existing_parameters.uid}),
         content_type='application/json'
     )
     assert response.status_code == 200
@@ -597,10 +597,13 @@ def test_updating_series_parameters_with_uid_of_non_existing(app, client):
     series = models.SeriesFactory.create()
     response = client.put(
         f"{BASE_URL}/series/{series.uid}/parameters",
-        data=json.dumps("non_existing_uid"),
+        data=json.dumps({'uid': "non_existing_uid"}),
         content_type='application/json'
     )
-    assert response.status_code == 404
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['uid'] == "non_existing_uid"
+    assert data['samplerate'] is not None
 
 
 @pytest.mark.usefixtures('database')

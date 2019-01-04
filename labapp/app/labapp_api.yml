@@ -37,14 +37,12 @@ paths:
           in: query
           description: Starting recording datetime for records filtering
           schema:
-            type: string
-            format: date-time
+            $ref: '#/components/schemas/DateTime'
         - name: recorded_to
           in: query
           description: Ending recording datetime for records filtering
           schema:
-            type: string
-            format: date-time
+            $ref: '#/components/schemas/DateTime'
         - name: uploaded
           in: query
           description: Return only records, that has/hasn't been uploaded
@@ -327,14 +325,12 @@ paths:
           in: query
           description: Starting creation date for recorders filtering
           schema:
-            type: string
-            format: date-time
+            $ref: '#/components/schemas/DateTime'
         - name: created_to
           in: query
           description: Ending creation date for recorders filtering
           schema:
-            type: string
-            format: date-time
+            $ref: '#/components/schemas/DateTime'
         - name: busy
           in: query
           description: Returns only recorders with/without assigned current series
@@ -524,14 +520,12 @@ paths:
           in: query
           description: Starting date for serieses filtering
           schema:
-            type: string
-            format: date-time
+            $ref: '#/components/schemas/DateTime'
         - name: created_to
           in: query
           description: Ending date for serieses filtering
           schema:
-            type: string
-            format: date-time
+            $ref: '#/components/schemas/DateTime'
         - name: samplerate
           in: query
           description: Samplerate
@@ -732,19 +726,12 @@ paths:
         content:
           application/json:
             schema:
-              oneOf:
-                - $ref: "#/components/schemas/RecordingParameters"
-                - type: string
+              $ref: "#/components/schemas/RecordingParameters"
       parameters:
         - name: series_uid
           in: path
           description: UID of series that parameters will be updated
           required: true
-          schema:
-            type: string
-        - name: parameters_uid
-          in: path
-          description: (Optional) UID of existing parameters set that will be assigned to series
           schema:
             type: string
       responses:
@@ -762,6 +749,8 @@ paths:
           $ref: '#/components/responses/NotPermitted'
         404:
           $ref: '#/components/responses/NotFound'
+
+
 components:
 
   responses:
@@ -807,8 +796,7 @@ components:
         uid:
           type: string
         created_at:
-          type: string
-          format: date-time
+          $ref: '#/components/schemas/DateTime'
           readOnly: true
         description:
           type: string
@@ -822,8 +810,7 @@ components:
           type: string
           format: uuid
         created_at:
-          type: string
-          format: date-time
+          $ref: '#/components/schemas/DateTime'
           readOnly: true
         series_uid:
           type: string
@@ -845,8 +832,7 @@ components:
         uid:
           type: string
         created_at:
-          type: string
-          format: date-time
+          $ref: '#/components/schemas/DateTime'
           readOnly: true
         location_description:
           type: string
@@ -854,13 +840,14 @@ components:
         current_series:
           type: string
           nullable: true
+          readOnly: true
     RecordingParameters:
       type: object
       properties:
         uid:
           type: string
         created_at:
-          type: string
+          $ref: '#/components/schemas/DateTime'
           readOnly: true
         samplerate:
           type: integer
@@ -879,15 +866,14 @@ components:
         uid:
           type: string
         created_at:
-          type: string
-          format: date-time
+          $ref: '#/components/schemas/DateTime'
           readOnly: true
         description:
           type: string
         recorder_uid:
           type: string
         parameters:
-          $ref: "#/components/schemas/RecordingParameters"
+          $ref: '#/components/schemas/RecordingParameters'
         is_active:
           type: boolean
           readOnly: true
@@ -896,3 +882,7 @@ components:
       properties:
         detail:
           type: string
+    DateTime:
+      type: string
+      format: date-time
+      example: 2018-11-26T12:34:56

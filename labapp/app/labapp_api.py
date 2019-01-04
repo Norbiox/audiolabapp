@@ -337,12 +337,13 @@ def get_series_parameters(series_uid):
 def update_series_parameters(series_uid):
     series = get_object_or_404(Series, series_uid)
     parameters = request.get_json()
-    if isinstance(parameters, str):
-        parameters_set = get_object_or_404(RecordingParameters, parameters)
-    elif isinstance(parameters, dict):
+    try:
+        uid = parameters.pop('uid')
+        parameters_set = get_object(RecordingParameters, uid)
+    except orm.exc.NoResultFound:
+        parameters_set = RecordingParameters(uid=uid, **parameters)
+    except KeyError:
         parameters_set = RecordingParameters(**parameters)
-    else:
-        raise ValueError
     series.parameters_uid = parameters_set.uid
     try:
         db.session.add(parameters_set)
