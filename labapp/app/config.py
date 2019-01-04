@@ -7,8 +7,12 @@ load_dotenv()
 
 class Config:
     DEBUG = False
-    SQLALCHEMY_DATABASE_URI = os.getenv('LABAPP_DATABASE_URL')
-    SECRET_KEY = os.getenv('SECRET_KEY')
+    SQLALCHEMY_DATABASE_URI = os.getenv(
+        'LABAPP_DATABASE_URL',
+        default='mysql://root:toor@172.17.0.2:3306/mysql'
+    )
+    SECRET_KEY = os.getenv('SECRET_KEY',
+                           default='uber-secretly-keeped-in-memory-key')
     SQLALCHEMY_TRACK_MODIFICATIONS = True
 
 

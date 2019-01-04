@@ -75,7 +75,7 @@ def test_getting_records(app, client, attributes, data_len):
 def test_registering_record(app, client, label):
     recorder = models.RecorderFactory.create()
     series = models.SeriesFactory.create(recorder=recorder)
-    record_data = creators.create_record(series_uid=series.uid, label=label)[0]
+    record_data = creators.create_record(series_uid=series.uid, label=label)
     response = client.post(
         f"{BASE_URL}/record",
         data=json.dumps(record_data),
@@ -95,7 +95,7 @@ def test_registering_record_by_wrong_recorder(app, client):
     recorder1 = models.RecorderFactory.create()
     recorder2 = models.RecorderFactory.create()
     series = models.SeriesFactory.create(recorder=recorder1)
-    record_data = creators.create_record(series_uid=series.uid)[0]
+    record_data = creators.create_record(series_uid=series.uid)
     response = client.post(
         f"{BASE_URL}/record",
         data=json.dumps(record_data),
@@ -109,7 +109,7 @@ def test_registering_record_by_wrong_recorder(app, client):
 def test_registering_record_by_non_existing_recorder(app, client):
     recorder = models.RecorderFactory.create()
     series = models.SeriesFactory.create(recorder=recorder)
-    record_data = creators.create_record(series_uid=series.uid)[0]
+    record_data = creators.create_record(series_uid=series.uid)
     response = client.post(
         f"{BASE_URL}/record",
         data=json.dumps(record_data),
@@ -218,7 +218,6 @@ def test_downloading_files(app, client):
     assert response.data == b"content_of_file"
 
 
-
 @pytest.mark.usefixtures('database')
 def test_getting_record_parameters(app, client):
     parameters = models.RecordingParametersFactory.create()
@@ -262,7 +261,7 @@ def test_getting_recorders(app, client, database, attributes, data_len):
 
 @pytest.mark.usefixtures('database')
 def test_adding_recorder(app, client):
-    new_recorder = creators.create_recorder()[0]
+    new_recorder = creators.create_recorder()
     response = client.post(
         f"{BASE_URL}/recorder",
         data=json.dumps(new_recorder),
@@ -380,7 +379,7 @@ def test_add_series_with_existing_parameters(app, client):
     recorder = models.RecorderFactory.create()
     parameters = models.RecordingParametersFactory.create()
     new_series = creators.create_series(recorder_uid=recorder.uid,
-                                        parameters=parameters.uid)[0]
+                                        parameters={"uid": parameters.uid})
     response = client.post(
         f"{BASE_URL}/series",
         data=json.dumps(new_series),
@@ -397,10 +396,10 @@ def test_add_series_with_existing_parameters(app, client):
 
 
 @pytest.mark.usefixtures('database')
-def test_add_series_with_uid_of_non_existing_parameters(app, client):
+def test_add_series_with_uid_of_non_existing_parameters_uid(app, client):
     recorder = models.RecorderFactory.create()
     new_series = creators.create_series(recorder_uid=recorder.uid,
-                                        parameters="RP1")[0]
+                                        parameters={"uid": "RP1"})
     response = client.post(
         f"{BASE_URL}/series",
         data=json.dumps(new_series),
@@ -414,7 +413,7 @@ def test_add_series_with_uid_of_non_existing_parameters(app, client):
 
 
 @pytest.mark.usefixtures('database')
-def test_add_series_with_parameters_dictionary(app, client):
+def test_add_series_with_parameters(app, client):
     recorder = models.RecorderFactory.create()
     parameters = {
         'uid': "RP1",
@@ -422,7 +421,7 @@ def test_add_series_with_parameters_dictionary(app, client):
         'duration': 13.2
     }
     new_series = creators.create_series(recorder_uid=recorder.uid,
-                                        parameters=parameters)[0]
+                                        parameters=parameters)
     response = client.post(
         f"{BASE_URL}/series",
         data=json.dumps(new_series),
@@ -441,20 +440,27 @@ def test_add_series_with_parameters_dictionary(app, client):
 @pytest.mark.usefixtures('database')
 def test_add_series_with_parameters_dictionary_with_existing_uid(app, client):
     recorder = models.RecorderFactory.create()
-    models.RecordingParametersFactory.create(uid="RP1")
+    existing_parameters = models.RecordingParametersFactory.create(uid="RP1")
     parameters = {
-        'uid': "RP1",
+        'uid': existing_parameters.uid,
         'samplerate': 22222,
         'duration': 13.2
     }
     new_series = creators.create_series(recorder_uid=recorder.uid,
-                                        parameters=parameters)[0]
+                                        parameters=parameters)
     response = client.post(
         f"{BASE_URL}/series",
         data=json.dumps(new_series),
         content_type='application/json'
     )
-    assert response.status_code == 400
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['parameters']['uid'] == existing_parameters.uid
+    assert data['parameters']['samplerate'] == existing_parameters.samplerate
+    assert data['parameters']['channels'] == existing_parameters.channels
+    assert data['parameters']['duration'] == existing_parameters.duration
+    assert data['parameters']['amplification'] == \
+        existing_parameters.amplification
 
 
 @pytest.mark.usefixtures('database')
@@ -553,7 +559,7 @@ def test_getting_series_parameters(app, client):
 @pytest.mark.usefixtures('database')
 def test_updating_series_parameters_with_new_parameters(app, client):
     series = models.SeriesFactory.create()
-    new_parameters = creators.create_recording_parameters()[0]
+    new_parameters = creators.create_recording_parameters()
     response = client.put(
         f"{BASE_URL}/series/{series.uid}/parameters",
         data=json.dumps(new_parameters),

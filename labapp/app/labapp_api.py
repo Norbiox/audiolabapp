@@ -4,8 +4,7 @@ from sqlalchemy import and_, exc, orm, or_
 
 from app.decorators import recorder_required
 from app.helpers import (
-    datetime_to_time, get_object, get_object_or_404, increase_last_digit,
-    parse_filtering_dates, time_to_datetime
+    get_object, get_object_or_404, increase_last_digit, parse_filtering_dates
 )
 from app.models import db, Label, Record, Recorder, RecordingParameters, Series
 
@@ -272,17 +271,15 @@ def get_serieses(recorder_uid=None, parameters_uid=None, created_from=None,
 
 def new_series():
     series_data = request.get_json()
-    parameters = series_data.pop('parameters', None)
+    parameters = series_data.pop('parameters')
     try:
-        if isinstance(parameters, str):
-            try:
-                parameters_obj = get_object(RecordingParameters, parameters)
-            except orm.exc.NoResultFound:
-                parameters_obj = RecordingParameters(uid=parameters)
-        elif isinstance(parameters, dict):
+        try:
+            uid = parameters.pop('uid')
+            parameters_obj = get_object(RecordingParameters, uid)
+        except orm.exc.NoResultFound:
+            parameters_obj = RecordingParameters(uid=uid, **parameters)
+        except KeyError:
             parameters_obj = RecordingParameters(**parameters)
-        else:
-            raise ValueError
         series = Series(parameters_uid=parameters_obj.uid, **series_data)
         db.session.add(parameters_obj)
         db.session.add(series)

@@ -809,6 +809,7 @@ components:
         created_at:
           type: string
           format: date-time
+          readOnly: true
         description:
           type: string
     Record:
@@ -823,6 +824,7 @@ components:
         created_at:
           type: string
           format: date-time
+          readOnly: true
         series_uid:
           type: string
         label_uid:
@@ -836,6 +838,7 @@ components:
           type: string
           format: date-time
           nullable: true
+          readOnly: true
     Recorder:
       type: object
       properties:
@@ -844,6 +847,7 @@ components:
         created_at:
           type: string
           format: date-time
+          readOnly: true
         location_description:
           type: string
           nullable: true
@@ -857,6 +861,7 @@ components:
           type: string
         created_at:
           type: string
+          readOnly: true
         samplerate:
           type: integer
         channels:
@@ -876,16 +881,16 @@ components:
         created_at:
           type: string
           format: date-time
+          readOnly: true
         description:
           type: string
         recorder_uid:
           type: string
         parameters:
-          oneOf:
-            - $ref: "#/components/schemas/RecordingParameters"
-            - type: string
+          $ref: "#/components/schemas/RecordingParameters"
         is_active:
           type: boolean
+          readOnly: true
     Error:
       type: object
       properties:
