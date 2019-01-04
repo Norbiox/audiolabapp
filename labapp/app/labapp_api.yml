@@ -886,3 +886,4 @@ components:
       type: string
       format: date-time
       example: 2018-11-26T12:34:56
+      readOnly: true

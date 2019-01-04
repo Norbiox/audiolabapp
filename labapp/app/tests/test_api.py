@@ -616,4 +616,7 @@ def test_upd_series_parameters_with_dict_containing_existing_uid(app, client):
         data=json.dumps(new_parameters),
         content_type='application/json'
     )
-    assert response.status_code == 400
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['uid'] == existing_parameters.uid
+    assert data['samplerate'] == existing_parameters.samplerate

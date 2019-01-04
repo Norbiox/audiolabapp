@@ -154,13 +154,8 @@ def get_recorders(series_uid=None, created_from=None, created_to=None,
 
 def new_recorder():
     recorder_data = request.get_json()
-    recorder_uid = recorder_data.pop('uid')
-    location_description = recorder_data.pop('location_description')
     try:
-        recorder = Recorder(
-            uid=recorder_uid,
-            location_description=location_description
-        )
+        recorder = Recorder(**recorder_data)
         db.session.add(recorder)
         db.session.commit()
         return recorder.to_dict()
@@ -271,6 +266,7 @@ def get_serieses(recorder_uid=None, parameters_uid=None, created_from=None,
 
 def new_series():
     series_data = request.get_json()
+    get_object_or_404(Recorder, series_data['recorder_uid'])
     parameters = series_data.pop('parameters')
     try:
         try:
@@ -280,8 +276,9 @@ def new_series():
             parameters_obj = RecordingParameters(uid=uid, **parameters)
         except KeyError:
             parameters_obj = RecordingParameters(**parameters)
-        series = Series(parameters_uid=parameters_obj.uid, **series_data)
         db.session.add(parameters_obj)
+        db.session.commit()
+        series = Series(parameters_uid=parameters_obj.uid, **series_data)
         db.session.add(series)
         db.session.commit()
         return series.to_dict()
