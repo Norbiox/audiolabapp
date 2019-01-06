@@ -9,6 +9,24 @@ from app.helpers import (
 from app.models import db, Label, Record, Recorder, RecordingParameters, Series
 
 
+def get_labels():
+    return [l.to_dict() for l in Label.query.all()]
+
+
+def new_label():
+    label_data = request.get_json()
+    try:
+        label = Label(**label_data)
+        db.session.add(label)
+        db.session.commit()
+        return label.to_dict()
+    except exc.IntegrityError as ex:
+        db.session.rollback()
+        flask.abort(400, str(ex))
+    except ValueError as ex:
+        flask.abort(400, str(ex))
+
+
 def get_records(series_uid=None, recorded_from=None, recorded_to=None,
                 uploaded=None, label=None, labeled=None):
     filters = []

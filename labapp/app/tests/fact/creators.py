@@ -4,6 +4,13 @@ from time import time
 from ..fact import fake
 
 
+def create_label(uid=None, description=None):
+    return {
+        'uid': uid or fake.uuid4(),
+        'description': description or fake.sentence()
+    }
+
+
 def create_record(uid=None, series_uid=None, current_series_uid=None,
                   start_time=None, uploaded_at=None, filepath=None,
                   label=None):

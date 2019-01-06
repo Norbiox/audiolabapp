@@ -11,6 +11,8 @@ servers:
       version:
         default: '1.0'
 tags:
+- name: label
+  description: Label for record
 - name: record
   description: Sound record object
 - name: recorder
@@ -19,6 +21,49 @@ tags:
   description: Series of records
 
 paths:
+  /label:
+    get:
+      tags:
+        - label
+      summary: Return labels
+      operationId: app.labapp_api.get_labels
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Label'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/NotPermitted'
+    post:
+      tags:
+        - label
+      operationId: app.labapp_api.new_label
+      requestBody:
+        description: Label object that will be registered
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Label'
+      responses:
+        200:
+          description: Label added successfuly.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Label'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/NotPermitted'
   /record:    
     get:
       tags:
@@ -821,6 +866,7 @@ components:
           type: number
         stop_time:
           type: number
+          readOnly: true
         uploaded_at:
           type: string
           format: date-time

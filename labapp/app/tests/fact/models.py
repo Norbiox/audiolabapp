@@ -3,7 +3,18 @@ from random import choice
 
 from ..fact import fake
 from app.helpers import datetime_to_time
-from app.models import db, Record, Recorder, RecordingParameters, Series
+from app.models import db, Label, Record, Recorder, RecordingParameters, Series
+
+
+class LabelFactory(factory.alchemy.SQLAlchemyModelFactory):
+    class Meta:
+        model = Label
+        sqlalchemy_session = db.session
+        sqlalchemy_session_persistence = 'commit'
+
+    created_at = fake.date_time_this_year(before_now=True, after_now=False)
+    uid = factory.Sequence(lambda n: f"Series{n}")
+    description = fake.sentence()
 
 
 class RecordFactory(factory.alchemy.SQLAlchemyModelFactory):

@@ -19,6 +19,27 @@ DATESTRINGS = {
 }
 
 
+@pytest.mark.usefixtures('database')
+def test_getting_labels(app, client):
+    models.LabelFactory.create(uid="lab1")
+    models.LabelFactory.create(uid="lab2")
+    response = client.get(f"{BASE_URL}/label")
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert len(data) == 4
+
+
+@pytest.mark.usefixtures('database')
+def test_adding_labels(app, client):
+    label_data = creators.create_label(uid='new_label', description='2')
+    response = client.post(f"{BASE_URL}/label", data=json.dumps(label_data),
+                           content_type='application/json')
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['uid'] == 'new_label'
+    assert data['description'] == '2'
+
+
 @pytest.mark.parametrize('attributes,data_len', [
     ({'recorded_from': datetime_to_string(datetime(2018, 11, 15, 12, 0, 13))},
         2),
