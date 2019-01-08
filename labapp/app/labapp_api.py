@@ -1,5 +1,6 @@
 import flask
 from connexion import request
+from datetime import datetime
 from sqlalchemy import and_, exc, orm, or_
 
 from app.decorators import recorder_required
@@ -145,6 +146,9 @@ def upload_record(record_uid):
     if record.filepath.exists():
         record.filepath.unlink()
     file.save(str(record.filepath))
+    record.uploaded_at = datetime.now()
+    db.session.add(record)
+    db.session.commit()
     return record.to_dict()
 
 

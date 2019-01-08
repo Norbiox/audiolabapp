@@ -320,10 +320,13 @@ paths:
       operationId: app.labapp_api.upload_record
       requestBody:
         content:
-          audio/wav:
+          multipart/form-data:
             schema:
-              type: string
-              format: binary
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
       parameters:
         - name: record_uid
           in: path
