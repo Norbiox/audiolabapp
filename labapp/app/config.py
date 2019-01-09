@@ -7,10 +7,7 @@ load_dotenv()
 
 class Config:
     DEBUG = False
-    SQLALCHEMY_DATABASE_URI = os.getenv(
-        'LABAPP_DATABASE_URL',
-        default='mysql://root:toor@172.17.0.2:3306/mysql'
-    )
+    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL')
     SECRET_KEY = os.getenv('SECRET_KEY',
                            default='uber-secretly-keeped-in-memory-key')
     SQLALCHEMY_TRACK_MODIFICATIONS = True
@@ -18,7 +15,8 @@ class Config:
 
 class ProductionConfig(Config):
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    UPLOADS_DEFAULT_DEST = Path(os.getcwd()) / "media"
+    UPLOADS_DEFAULT_DEST = \
+        Path(os.getenv('MEDIA_DIR', default=os.getcwd())) / "media"
     UPLOADS_DEFAULT_DEST.mkdir(exist_ok=True)
 
 
