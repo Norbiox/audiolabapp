@@ -44,3 +44,19 @@ UWAGA: aplikacja domyślnie uruchomiona zostanie w trybie 'development', aby uru
 
         http://[url_aplikacji]/1.0/lab/ui
 
+
+## Uruchomienie skonteneryzowanej aplikacji
+
+Istnieje możliwość uruchomienia aplikacji w kontenerze za pomocą docker-compose. W tym celu należy najpierw zapewnić następujące zmienne środowiskowe:
+
+    export DB_ROOT_PASSWORD= \
+        DB_NAME= \
+        DB_USER= \
+        DB_PASSWORD= \
+        DB_PORT= \
+        SECRET_KEY= \
+        MEDIA_DIR=
+
+A następnie będąc w folderze ```labapp``` wykonać polecenie:
+
+    docker-compose up --build
