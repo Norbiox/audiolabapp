@@ -11,6 +11,7 @@ RUN apk add --no-cache mariadb-connector-c-dev ;\
         mariadb-dev ;\
     pip install mysqlclient;\
     apk del .build-deps
+RUN apk add --no-cache mysql-client
 
 COPY requirements.txt requirements.txt
 RUN python -m venv venv
@@ -27,5 +28,5 @@ ENV FLASK_APP=wsgi:app
 RUN chown -R labapp:labapp ./
 USER labapp
 
-EXPOSE 5000
+EXPOSE 80
 ENTRYPOINT ["./boot.sh"]
