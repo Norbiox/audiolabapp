@@ -49,7 +49,8 @@ UWAGA: aplikacja domyślnie uruchomiona zostanie w trybie 'development', aby uru
 
 Istnieje możliwość uruchomienia aplikacji w kontenerze za pomocą docker-compose. W tym celu należy najpierw zapewnić następujące zmienne środowiskowe:
 
-    export DB_ROOT_PASSWORD= \
+    export APP_PORT= \
+        DB_ROOT_PASSWORD= \
         DB_NAME= \
         DB_USER= \
         DB_PASSWORD= \
@@ -59,4 +60,4 @@ Istnieje możliwość uruchomienia aplikacji w kontenerze za pomocą docker-comp
 
 A następnie będąc w folderze ```labapp``` wykonać polecenie:
 
-    docker-compose up --build
+    docker-compose up -d --build

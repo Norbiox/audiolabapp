@@ -16,8 +16,8 @@ class Config:
 class ProductionConfig(Config):
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     UPLOADS_DEFAULT_DEST = \
-        Path(os.getenv('MEDIA_DIR', default=os.getcwd())) / "media"
-    UPLOADS_DEFAULT_DEST.mkdir(exist_ok=True)
+        Path(os.getenv('MEDIA_DIR', default=Path(os.getcwd()) / "media"))
+    UPLOADS_DEFAULT_DEST.mkdir(exist_ok=True, parents=True)
 
 
 class DevelopmentConfig(Config):
