@@ -1,7 +1,17 @@
 # AudioLabApp
 Laboratorium dźwiękowe.
 
-Serwis labapp pozwala na gromadzenie i zarządzanie nagraniami dźwiękowymi pochodzącymi z eksperymentów. 
+Serwis labapp pozwala na gromadzenie i zarządzanie nagraniami dźwiękowymi pochodzącymi z eksperymentów.
+
+
+## Cel
+
+Projekt ten powstał w ramach projektu studenckiego z przedmiotu Aplikacje Internetowe. Celem projektu było (oprócz zaliczenia przedmiotu ;) ) zdobycie wiedzy i doświadczenia w pracy z poniższymi technologiami i narzędziami:
+
+* python + flask
+* REST API
+* Open API 3 (Swagger)
+
 
 ## Testy i uruchomienie w środowisku deweloperskim
 
