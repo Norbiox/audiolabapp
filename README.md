@@ -11,6 +11,8 @@ Projekt ten powstał w ramach projektu studenckiego z przedmiotu Aplikacje Inter
 * python + flask
 * REST API
 * Open API 3 (Swagger)
+* docker
+* docker-compose
 
 
 ## Testy i uruchomienie w środowisku deweloperskim
